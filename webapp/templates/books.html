@@ -1,0 +1,796 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'navigation.nav_books' | translate(current_language or 'en') }} - {{ 'home.hero_title' | translate(current_language or 'en') }}{% endblock %}
+
+{% block content %}
+<!-- Combined Top Section: Title, Search, Filters, Total -->
+<div class="hero-section">
+    <div class="row">
+        <div class="col-lg-10 mx-auto text-center">
+            <h1 class="hero-title">
+                <i class="fas fa-books me-3"></i>
+                {{ 'books.books_title' | translate(current_language or 'en') }}
+            </h1>
+            <p class="hero-subtitle">
+                {{ 'home.hero_subtitle' | translate(current_language or 'en') }}
+            </p>
+
+            <form method="get" id="filters-form" class="row g-3 mt-2" onsubmit="return false;">
+                <div class="col-12 position-relative" style="max-width: 800px; margin: 0 auto;">
+                    <input type="text" class="form-control" id="search" name="search"
+                           value="{{ search }}" placeholder="{{ 'books.books_search_placeholder' | translate(current_language or 'en') }}"
+                           autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+                    <div id="catalogAutocompleteLoading" class="autocomplete-loading" aria-hidden="true"></div>
+                    <div id="catalogAutocompleteDropdown" class="autocomplete-dropdown" style="display: none;">
+                        <div id="catalogAutocompleteList" class="autocomplete-list"></div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div id="selected-tags" class="book-tags mb-1">
+                        {% for g in selected_genres %}
+                        <span class="badge {{ g|primary_tag_color }} me-1 selectable-tag" role="button" tabindex="0" aria-pressed="true" title="{{ 'books.tags_click_to_remove' | translate(current_language or 'en') }}" data-type="genre" data-value="{{ g }}">{{ g|tag_label(current_language or 'en') }}</span>
+                        {% endfor %}
+                        {% for t in selected_topics %}
+                        <span class="badge {{ t|primary_tag_color }} me-1 selectable-tag" role="button" tabindex="0" aria-pressed="true" title="{{ 'books.tags_click_to_remove' | translate(current_language or 'en') }}" data-type="topic" data-value="{{ t }}">{{ t|tag_label(current_language or 'en') }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="tags-separator" aria-hidden="true"></div>
+                    <div id="available-tags" class="book-tags mt-1">
+                        {% for g in all_genres %}
+                            {% if not selected_genres or g not in selected_genres %}
+                            <span class="badge {{ g|primary_tag_color }} me-1 selectable-tag" role="button" tabindex="0" aria-pressed="false" title="{{ 'books.tags_click_to_add' | translate(current_language or 'en') }}" data-type="genre" data-value="{{ g }}">{{ g|tag_label(current_language or 'en') }}</span>
+                            {% endif %}
+                        {% endfor %}
+                        {% for t in all_topics %}
+                            {% if not selected_topics or t not in selected_topics %}
+                            <span class="badge {{ t|primary_tag_color }} me-1 selectable-tag" role="button" tabindex="0" aria-pressed="false" title="{{ 'books.tags_click_to_add' | translate(current_language or 'en') }}" data-type="topic" data-value="{{ t }}">{{ t|tag_label(current_language or 'en') }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="genre" id="genre-hidden" value="{{ (selected_genres or [])|join(',') }}">
+                    <input type="hidden" name="topic" id="topic-hidden" value="{{ (selected_topics or [])|join(',') }}">
+                    <input type="hidden" name="page" id="page-hidden" value="1">
+                </div>
+            </form>
+
+            <div class="mt-2">
+                <small class="text-muted"><span id="found-total">{{ books.total }}</span> {{ 'books.books_found_suffix' | translate(current_language or 'en') }}</small>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<!-- Books Grid -->
+<div class="featured-section" id="books-container" data-infinite="true">
+    <div class="row" id="books-grid">
+        {% for book in books.items %}
+        <div class="col-6 col-md-3 col-lg-3 col-xl-3 mb-4">
+            <div class="explore-card animate-on-scroll" style="--cover-image: url('{{ url_for('book_cover', book_id=book.id) }}');">
+                <a href="{{ url_for('book_detail', book_id=book.id) }}" class="explore-card-link" aria-label="{{ 'common.view' | translate(current_language or 'en') }} {{ book.title }}">
+                    <img src="{{ url_for('book_cover', book_id=book.id) }}" 
+                         alt="Cover of {{ book.title }}" 
+                         class="explore-card-img" loading="lazy" decoding="async">
+                    <div class="explore-card-overlay">
+                        <div class="explore-card-overlay-content">
+                            <h6 class="explore-card-title" title="{{ book.title }}">{{ book.title }}</h6>
+                            <p class="explore-card-author" title="{% if book.authors %}{{ book.authors|join(', ') }}{% else %}{{ 'common.unknown' | translate(current_language or 'en') | title }} {{ 'book_details.book_author' | translate(current_language or 'en') }}{% endif %}">
+                                {% if book.authors %}
+                                    {{ book.authors|join(', ') }}
+                                {% else %}
+                                    {{ 'common.unknown' | translate(current_language or 'en') | title }} {{ 'book_details.book_author' | translate(current_language or 'en') }}
+                                {% endif %}
+                            </p>
+                            {% if book.description %}
+                            <p class="explore-card-desc">
+                                {{ (book.description | striptags) | truncate(220, True, '…') }}
+                            </p>
+                            {% endif %}
+                            <div class="book-tags mb-2">
+                                {% if book.primary_tag %}
+                                  <span class="badge {{ book.primary_tag|primary_tag_color }} me-1">{{ book.primary_tag|tag_label(current_language or 'en') }}</span>
+                                {% endif %}
+                                {% if book.secondary_tags %}
+                                  {% for t in book.secondary_tags[:3] %}
+                                    <span class="badge bg-secondary text-dark me-1">{{ t|tag_label(current_language or 'en') }}</span>
+                                  {% endfor %}
+                                {% endif %}
+                            </div>
+                            <div class="explore-card-meta">
+                                <small class="text-muted">
+                                    <i class="fas fa-language me-1"></i>
+                                    {{ book.language or ('common.unknown' | translate(current_language or 'en') | title) }}
+                                </small>
+                                {% if book.word_count %}
+                                <small class="text-muted ms-3">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ book.word_count|reading_time|format_reading_time(current_language or 'en') }}
+                                </small>
+                                {% endif %}
+                                {% if book.reading_level %}
+                                <small class="text-muted ms-3 nowrap">
+                                    <i class="fas fa-graduation-cap me-1"></i>
+                                    {{ ('reading_levels.' ~ book.reading_level) | translate(current_language or 'en') }}
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div id="infinite-loading" class="text-center my-3" style="display:block; min-height: 1px;"><i class="fas fa-spinner fa-spin"></i></div>
+</div>
+
+<!-- Books List (Hidden by default) -->
+<div class="featured-section d-none" id="books-list">
+    <div class="row">
+        {% for book in books.items %}
+        <div class="col-12 mb-4">
+            <div class="featured-book-card animate-on-scroll">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <h5 class="featured-book-title" title="{{ book.title }}">{{ book.title }}</h5>
+                        <p class="featured-book-author" title="{% if book.authors %}{{ book.authors|join(', ') }}{% else %}{{ 'common.unknown' | translate(current_language or 'en') | title }} {{ 'book_details.book_author' | translate(current_language or 'en') }}{% endif %}">
+                            {% if book.authors %}
+                                {{ book.authors|join(', ') }}
+                            {% else %}
+                                {{ 'common.unknown' | translate(current_language or 'en') | title }} {{ 'book_details.book_author' | translate(current_language or 'en') }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <!-- Primary tag + secondary tags -->
+                        <div class="book-tags mb-2">
+                            {% if book.primary_tag %}
+                              <span class="badge {{ book.primary_tag|primary_tag_color }} me-1">{{ book.primary_tag|tag_label(current_language or 'en') }}</span>
+                            {% endif %}
+                            {% if book.secondary_tags %}
+                              {% for t in book.secondary_tags[:3] %}
+                                <span class="badge bg-secondary text-dark me-1">{{ t|tag_label(current_language or 'en') }}</span>
+                              {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-center">
+                            {% if book.word_count %}
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                {{ book.word_count|reading_time|format_reading_time(current_language or 'en') }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="d-grid">
+                            <a href="{{ url_for('book_detail', book_id=book.id) }}" class="featured-book-btn btn btn-primary">
+                                <i class="fas fa-eye"></i>
+                                {{ 'common.view' | translate(current_language or 'en') }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if books.pages > 1 %}
+<div class="stats-section d-none" id="ssr-pagination-wrapper">
+    <div class="row">
+        <div class="col-12">
+            <div class="quick-actions-card animate-on-scroll">
+                <nav aria-label="Books pagination">
+                    <ul class="pagination justify-content-center mb-0" id="books-pagination">
+                        {% if books.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="#" data-page="{{ books.prev_num }}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in books.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != books.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="#" data-page="{{ page_num }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if books.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="#" data-page="{{ books.next_num }}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- No Results -->
+{% if books.items|length == 0 %}
+<div class="stats-section">
+    <div class="row">
+        <div class="col-12">
+            <div class="quick-actions-card animate-on-scroll text-center">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5 class="quick-actions-title">{{ 'books.books_no_results' | translate(current_language or 'en') }}</h5>
+                <p class="text-muted">{{ 'search.search_try_different' | translate(current_language or 'en') }}</p>
+                <a href="{{ url_for('books') }}" class="hero-btn hero-btn-primary">
+                    <i class="fas fa-undo"></i>
+                    {{ 'books.books_clear_filters' | translate(current_language or 'en') }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function changeView(view) {
+    const gridView = document.getElementById('books-grid');
+    const listView = document.getElementById('books-list');
+    
+    if (view === 'grid') {
+        gridView.classList.remove('d-none');
+        listView.classList.add('d-none');
+    } else {
+        gridView.classList.add('d-none');
+        listView.classList.remove('d-none');
+    }
+}
+
+// Interactive label selection for genres and topics + auto-submit on changes
+document.addEventListener('DOMContentLoaded', function () {
+    const genreHidden = document.getElementById('genre-hidden');
+    const topicHidden = document.getElementById('topic-hidden');
+    const form = document.getElementById('filters-form');
+    const searchInput = document.getElementById('search');
+    const pageHidden = document.getElementById('page-hidden');
+    const infiniteContainer = document.getElementById('books-container');
+    const infiniteSpinner = document.getElementById('infinite-loading');
+    const infiniteEnabled = infiniteContainer && infiniteContainer.dataset.infinite === 'true';
+    const titleAdd = "{{ 'books.tags_click_to_add' | translate(current_language or 'en') }}";
+    const titleRemove = "{{ 'books.tags_click_to_remove' | translate(current_language or 'en') }}";
+        const catalogAutocompleteDropdown = document.getElementById('catalogAutocompleteDropdown');
+        const catalogAutocompleteList = document.getElementById('catalogAutocompleteList');
+        const catalogAutocompleteLoading = document.getElementById('catalogAutocompleteLoading');
+        const catalogCache = new Map();
+        const CATALOG_MAX_CACHE = 300;
+        let catalogSuggestions = [];
+        let catalogSelectedIndex = -1;
+
+    // Infinite scroll state
+    window.catalogState = {
+        currentPage: Number("{{ books.page }}"),
+        totalPages: Number("{{ books.pages }}"),
+        loading: false,
+        append: false
+    };
+
+    function getValues(input) {
+        const raw = (input?.value || '').trim();
+        if (!raw) return [];
+        return raw.split(',').map(v => v.trim()).filter(Boolean);
+    }
+
+    function setValues(input, values) {
+        input.value = values.join(',');
+    }
+
+    function onTagClick(e) {
+        const target = e.target.closest('.selectable-tag');
+        if (!target) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const type = target.dataset.type;
+        const value = target.dataset.value;
+        const isSelected = target.parentElement && target.parentElement.id === 'selected-tags';
+
+        function setPressed(el, pressed) {
+            el.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+            el.setAttribute('title', pressed ? titleRemove : titleAdd);
+        }
+
+        if (type === 'genre') {
+            const selected = getValues(genreHidden);
+            if (isSelected) {
+                const idx = selected.indexOf(value);
+                if (idx !== -1) selected.splice(idx, 1);
+                setValues(genreHidden, selected);
+                document.getElementById('available-tags').appendChild(target);
+                setPressed(target, false);
+            } else {
+                if (!selected.includes(value)) selected.push(value);
+                setValues(genreHidden, selected);
+                document.getElementById('selected-tags').appendChild(target);
+                setPressed(target, true);
+            }
+        } else if (type === 'topic') {
+            const selected = getValues(topicHidden);
+            if (isSelected) {
+                const idx = selected.indexOf(value);
+                if (idx !== -1) selected.splice(idx, 1);
+                setValues(topicHidden, selected);
+                document.getElementById('available-tags').appendChild(target);
+                setPressed(target, false);
+            } else {
+                if (!selected.includes(value)) selected.push(value);
+                setValues(topicHidden, selected);
+                document.getElementById('selected-tags').appendChild(target);
+                setPressed(target, true);
+            }
+        }
+    }
+
+    function onContainerKeydown(e) {
+        const target = e.target.closest('.selectable-tag');
+        if (!target) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onTagClick(e);
+        }
+    }
+
+    async function submitForm() {
+        // Reset to first page on any change
+        if (pageHidden) pageHidden.value = '1';
+
+        // Build query params
+        const params = new URLSearchParams();
+        const q = (searchInput?.value || '').trim();
+        if (q) params.set('search', q);
+        const genres = getValues(genreHidden);
+        const topics = getValues(topicHidden);
+        if (genres.length) params.set('genre', genres.join(','));
+        if (topics.length) params.set('topic', topics.join(','));
+        params.set('page', '1');
+
+        // Fetch data from API
+        const url = `${window.location.origin}${window.location.pathname.replace(/\/books$/, '/api/books') || '/api/books'}?${params.toString()}`;
+        try {
+            const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (!resp.ok) throw new Error('Network response was not ok');
+            const data = await resp.json();
+            renderBooks(data);
+            updateTotal(data.total);
+            updateHistory(params);
+        } catch (e) {
+            console.error('Failed to fetch books', e);
+        }
+    }
+
+    function updateTotal(total) {
+        const totalNode = document.querySelector('#found-total');
+        if (totalNode) totalNode.textContent = String(total);
+    }
+
+    function updateHistory(params) {
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState({}, '', newUrl);
+    }
+
+    function escapeHtml(str) {
+        return (str || '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s]));
+    }
+
+    function renderBooks(data) {
+        const container = document.getElementById('books-container');
+        if (!container) return;
+        const grid = document.getElementById('books-grid');
+        const list = document.getElementById('books-list');
+
+        function parseList(value) {
+            if (Array.isArray(value)) return value;
+            if (typeof value === 'string') {
+                try {
+                    const parsed = JSON.parse(value);
+                    if (Array.isArray(parsed)) return parsed;
+                } catch {}
+                // fallback: split on commas
+                return value.split(',').map(s => s.trim()).filter(Boolean);
+            }
+            return [];
+        }
+
+        function formatAuthors(book) {
+            const authors = parseList(book.authors);
+            return authors.join(', ');
+        }
+
+        function tagLabel(tag) {
+            const lang = "{{ (current_language or 'en') }}";
+            const labels = lang.startsWith('fr') ? (window.tagLabelsFr || {}) : (window.tagLabelsEn || {});
+            const key = String(tag || '');
+            return labels[key] || key.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        function genreColor(tag) {
+            const colors = window.tagColors || {};
+            return colors[String(tag)] || 'bg-secondary';
+        }
+
+        function bookTags(book) {
+            const parts = [];
+            if (book.primary_tag) parts.push(`<span class="badge ${genreColor(book.primary_tag)} me-1">${escapeHtml(tagLabel(book.primary_tag))}</span>`);
+            parseList(book.secondary_tags).slice(0,3).forEach(t => parts.push(`<span class="badge bg-secondary text-dark me-1">${escapeHtml(tagLabel(t))}</span>`));
+            return parts.join('');
+        }
+
+        const books = Array.isArray(data.books) ? data.books : [];
+
+        // Render grid
+        if (grid) {
+            const rows = books.map(book => `
+            <div class="col-6 col-md-3 col-lg-3 col-xl-3 mb-4">
+              <div class="explore-card animate-on-scroll" style="--cover-image: url('/cover/${encodeURIComponent(book.id)}');">
+                <a href="/book/${encodeURIComponent(book.id)}" class="explore-card-link" aria-label="View ${escapeHtml(book.title || '')}">
+                  <img src="/cover/${encodeURIComponent(book.id)}" alt="Cover of ${escapeHtml(book.title || '')}" class="explore-card-img" loading="lazy" decoding="async">
+                  <div class="explore-card-overlay">
+                    <div class="explore-card-overlay-content">
+                      <h6 class="explore-card-title" title="${escapeHtml(book.title || '')}">${escapeHtml(book.title || '')}</h6>
+                      <p class="explore-card-author" title="${escapeHtml(formatAuthors(book))}">${escapeHtml(formatAuthors(book))}</p>
+                      ${book.description ? `<p class="explore-card-desc">${escapeHtml(String(book.description).replace(/<[^>]*>/g,'').slice(0,220))}…</p>` : ''}
+                      <div class="book-tags mb-2">${bookTags(book)}</div>
+                      <div class="explore-card-meta">
+                        <small class="text-muted"><i class="fas fa-language me-1"></i>${escapeHtml(book.language || '')}</small>
+                        ${book.word_count ? `<small class="text-muted ms-3"><i class="fas fa-clock me-1"></i>${Math.max(1, Math.round((book.word_count || 0)/250))} min</small>` : ''}
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              </div>
+            </div>`).join('');
+            const gridRow = document.querySelector('#books-grid');
+            if (gridRow) {
+                if (window.catalogState && window.catalogState.append) {
+                    gridRow.insertAdjacentHTML('beforeend', rows);
+                } else {
+                    gridRow.innerHTML = rows;
+                }
+                // Make dynamically added cards visible (bypass initial scroll observer)
+                gridRow.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('animated'));
+            }
+        }
+
+        // Update infinite state
+        try {
+            window.catalogState.totalPages = Number(data.pages || window.catalogState.totalPages || 1);
+            window.catalogState.currentPage = Number(data.current_page || 1);
+        } catch {}
+
+        // Render pagination (simple prev/next) — kept for non-infinite fallback
+        const pag = document.getElementById('books-pagination');
+        if (pag) {
+            const current = Number(data.current_page || 1);
+            const pages = Number(data.pages || 1);
+            const canPrev = current > 1;
+            const canNext = current < pages;
+            const params = new URLSearchParams(window.location.search);
+            pag.innerHTML = `
+              ${canPrev ? `<li class="page-item"><a class="page-link" href="#" data-page="${current-1}"><i class="fas fa-chevron-left"></i></a></li>` : ''}
+              ${Array.from({length: pages}).slice(Math.max(0,current-3), Math.min(pages, current+2)).map((_,i)=>{
+                const pageNum = Math.max(1, current-2)+i;
+                return pageNum === current
+                  ? `<li class="page-item active"><span class="page-link">${pageNum}</span></li>`
+                  : `<li class="page-item"><a class="page-link" href="#" data-page="${pageNum}">${pageNum}</a></li>`
+              }).join('')}
+              ${canNext ? `<li class="page-item"><a class="page-link" href="#" data-page="${current+1}"><i class="fas fa-chevron-right"></i></a></li>` : ''}
+            `;
+
+            pag.querySelectorAll('a[data-page]')?.forEach(a => {
+                a.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    const page = a.getAttribute('data-page');
+                    if (!page) return;
+                    loadPage(Number(page));
+                })
+            })
+        }
+    }
+
+    async function loadPage(page, append = false) {
+        if (pageHidden) pageHidden.value = String(page);
+        const params = new URLSearchParams();
+        const q = (searchInput?.value || '').trim();
+        if (q) params.set('search', q);
+        const genres = getValues(genreHidden);
+        const topics = getValues(topicHidden);
+        if (genres.length) params.set('genre', genres.join(','));
+        if (topics.length) params.set('topic', topics.join(','));
+        params.set('page', String(page));
+
+        const url = `${window.location.origin}/api/books?${params.toString()}`;
+        try {
+            const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (!resp.ok) throw new Error('Network response was not ok');
+            const data = await resp.json();
+            // Set append mode for rendering
+            if (!window.catalogState) window.catalogState = { currentPage: 1, totalPages: 1, loading: false, append: false };
+            window.catalogState.append = Boolean(append);
+            renderBooks(data);
+            updateTotal(data.total);
+            if (!append) updateHistory(params);
+            // Update paging state on append as well
+            if (append) {
+                const apiPage = Number(data.current_page || 0);
+                if (!isNaN(apiPage) && apiPage > (window.catalogState.currentPage || 1)) {
+                    window.catalogState.currentPage = apiPage;
+                } else {
+                    window.catalogState.currentPage = (window.catalogState.currentPage || 1) + 1;
+                }
+                window.catalogState.totalPages = Number(data.pages || window.catalogState.totalPages || 1);
+                // Trigger another check in case spinner is already intersecting and we still have pages left
+                setTimeout(() => {
+                    const { currentPage, totalPages } = window.catalogState;
+                    if (currentPage < totalPages && infiniteSpinner && infiniteSpinner.getBoundingClientRect().top < (window.innerHeight || document.documentElement.clientHeight)) {
+                        loadPage(currentPage + 1, true);
+                    }
+                }, 0);
+            }
+        } catch (e) {
+            console.error('Failed to load page', e);
+        }
+    }
+
+    // Catalog autocomplete
+    async function fetchCatalogSuggestions(query) {
+        if (!query || query.length < 2) {
+            hideCatalogAutocomplete();
+            return;
+        }
+        try {
+            if (catalogAutocompleteLoading) catalogAutocompleteLoading.style.display = 'block';
+            if (catalogCache.has(query)) {
+                catalogSuggestions = catalogCache.get(query).slice(0,5);
+                renderCatalogSuggestions();
+                if (catalogAutocompleteLoading) catalogAutocompleteLoading.style.display = 'none';
+                return;
+            }
+            const resp = await fetch(`/api/autocomplete?q=${encodeURIComponent(query)}`);
+            const suggestions = await resp.json();
+            if (catalogCache.size > CATALOG_MAX_CACHE) catalogCache.clear();
+            catalogCache.set(query, suggestions);
+            catalogSuggestions = suggestions.slice(0, 5);
+            renderCatalogSuggestions();
+        } catch (e) {
+            console.error('autocomplete error', e);
+            hideCatalogAutocomplete();
+        }
+        finally {
+            if (catalogAutocompleteLoading) catalogAutocompleteLoading.style.display = 'none';
+        }
+    }
+
+    function hideCatalogAutocomplete() {
+        if (catalogAutocompleteDropdown) catalogAutocompleteDropdown.style.display = 'none';
+        catalogSelectedIndex = -1;
+        if (catalogAutocompleteLoading) catalogAutocompleteLoading.style.display = 'none';
+    }
+
+    function renderCatalogSuggestions() {
+        if (!catalogAutocompleteDropdown || !catalogAutocompleteList) return;
+        if (!catalogSuggestions.length) {
+            hideCatalogAutocomplete();
+            return;
+        }
+        catalogAutocompleteList.innerHTML = '';
+        catalogSuggestions.forEach((sugg, idx) => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.dataset.index = String(idx);
+            const icon = sugg.type === 'title' ? 'fas fa-book' : 'fas fa-user';
+            item.innerHTML = `
+                <i class="autocomplete-item-icon ${icon}"></i>
+                <div class="autocomplete-item-text">${escapeHtml(sugg.text)}</div>
+                <div class="autocomplete-item-meta">${sugg.type === 'title' ? escapeHtml(sugg.author || '') : ''}</div>
+            `;
+            item.addEventListener('click', () => selectCatalogSuggestion(sugg));
+            item.addEventListener('mouseenter', () => { catalogSelectedIndex = idx; highlightCatalogSelection(); });
+            catalogAutocompleteList.appendChild(item);
+        });
+        catalogAutocompleteDropdown.style.display = 'block';
+        // Ensure dropdown width matches input and stays in viewport
+        const inputRect = searchInput.getBoundingClientRect();
+        catalogAutocompleteDropdown.style.minWidth = inputRect.width + 'px';
+        catalogAutocompleteDropdown.style.maxWidth = inputRect.width + 'px';
+        catalogAutocompleteDropdown.style.left = '0px';
+        catalogAutocompleteDropdown.style.right = 'auto';
+        catalogAutocompleteDropdown.style.bottom = 'auto';
+        catalogAutocompleteDropdown.style.top = '100%';
+        highlightCatalogSelection();
+    }
+
+    function highlightCatalogSelection() {
+        const items = catalogAutocompleteList?.querySelectorAll('.autocomplete-item');
+        if (!items) return;
+        items.forEach((el, i) => {
+            el.style.backgroundColor = (i === catalogSelectedIndex)
+                ? (document.body.classList.contains('light-mode') ? 'var(--light-hover)' : 'var(--dark-hover)')
+                : '';
+        });
+    }
+
+    function selectCatalogSuggestion(sugg) {
+        if (!sugg) return;
+        searchInput.value = sugg.text || '';
+        hideCatalogAutocomplete();
+        submitForm();
+    }
+
+    function onContainerClick(e) {
+        const beforeGenres = getValues(genreHidden).join(',');
+        const beforeTopics = getValues(topicHidden).join(',');
+        onTagClick(e);
+        const afterGenres = getValues(genreHidden).join(',');
+        const afterTopics = getValues(topicHidden).join(',');
+        if (beforeGenres !== afterGenres || beforeTopics !== afterTopics) {
+            submitForm();
+        }
+    }
+
+    document.getElementById('selected-tags')?.addEventListener('click', onContainerClick);
+    document.getElementById('available-tags')?.addEventListener('click', onContainerClick);
+    document.getElementById('selected-tags')?.addEventListener('keydown', onContainerKeydown);
+    document.getElementById('available-tags')?.addEventListener('keydown', onContainerKeydown);
+
+    // Auto-submit when typing search (debounced) + autocomplete
+    let debounceTimer;
+    searchInput?.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        const value = this.value || '';
+        if (catalogAutocompleteLoading) catalogAutocompleteLoading.style.display = value.length >= 2 ? 'block' : 'none';
+        // show cached immediately if present
+        if (catalogCache.has(value)) {
+            catalogSuggestions = catalogCache.get(value).slice(0,5);
+            renderCatalogSuggestions();
+        }
+        debounceTimer = setTimeout(() => {
+            submitForm();
+            fetchCatalogSuggestions(value);
+        }, 150);
+    });
+
+    // Keyboard navigation for autocomplete
+    searchInput?.addEventListener('keydown', function(e) {
+        if (!catalogAutocompleteDropdown || catalogAutocompleteDropdown.style.display === 'none') return;
+        if (!catalogSuggestions.length) return;
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                catalogSelectedIndex = Math.min(catalogSelectedIndex + 1, catalogSuggestions.length - 1);
+                highlightCatalogSelection();
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                catalogSelectedIndex = Math.max(catalogSelectedIndex - 1, 0);
+                highlightCatalogSelection();
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (catalogSelectedIndex >= 0) {
+                    selectCatalogSuggestion(catalogSuggestions[catalogSelectedIndex]);
+                } else {
+                    hideCatalogAutocomplete();
+                    submitForm();
+                }
+                break;
+            case 'Escape':
+                hideCatalogAutocomplete();
+                break;
+        }
+    });
+
+    // Hide autocomplete when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput?.contains(e.target) && !catalogAutocompleteDropdown?.contains(e.target)) {
+            hideCatalogAutocomplete();
+        }
+    });
+
+    // Intercept initial SSR pagination clicks to use AJAX
+    (function attachInitialPaginationHandlers() {
+        const pag = document.getElementById('books-pagination');
+        if (!pag) return;
+        pag.querySelectorAll('a[data-page]')?.forEach(a => {
+            a.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                const pageAttr = a.getAttribute('data-page');
+                const pageNum = pageAttr ? Number(pageAttr) : NaN;
+                if (!isNaN(pageNum) && pageNum > 0) {
+                    loadPage(pageNum);
+                }
+            });
+        });
+    })();
+
+    // Infinite scrolling
+    function setupInfiniteScroll() {
+        if (!infiniteEnabled || !infiniteSpinner) return;
+        const observer = new IntersectionObserver(async (entries) => {
+            const entry = entries[0];
+            if (!entry || !entry.isIntersecting) return;
+            if (!window.catalogState || window.catalogState.loading) return;
+            const { currentPage, totalPages } = window.catalogState;
+            if (currentPage >= totalPages) return;
+            try {
+                window.catalogState.loading = true;
+                infiniteSpinner.style.display = 'block';
+                await loadPage(currentPage + 1, true);
+            } finally {
+                window.catalogState.loading = false;
+                const hasMore = (window.catalogState && (window.catalogState.currentPage < window.catalogState.totalPages));
+                infiniteSpinner.style.display = hasMore ? 'block' : 'none';
+            }
+        }, { root: null, rootMargin: '0px', threshold: 0.1 });
+        if (infiniteSpinner && infiniteSpinner.parentElement) {
+            observer.observe(infiniteSpinner);
+        }
+    }
+
+    // Reset and fetch on filter/search changes
+    async function submitForm() {
+        // Reset to first page on any change
+        if (pageHidden) pageHidden.value = '1';
+
+        // Build query params
+        const params = new URLSearchParams();
+        const q = (searchInput?.value || '').trim();
+        if (q) params.set('search', q);
+        const genres = getValues(genreHidden);
+        const topics = getValues(topicHidden);
+        if (genres.length) params.set('genre', genres.join(','));
+        if (topics.length) params.set('topic', topics.join(','));
+        params.set('page', '1');
+
+        // Fetch data from API
+        const url = `${window.location.origin}${window.location.pathname.replace(/\/books$/, '/api/books') || '/api/books'}?${params.toString()}`;
+        try {
+            const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (!resp.ok) throw new Error('Network response was not ok');
+            const data = await resp.json();
+            if (!window.catalogState) window.catalogState = { currentPage: 1, totalPages: 1, loading: false, append: false };
+            window.catalogState.append = false;
+            renderBooks(data);
+            updateTotal(data.total);
+            updateHistory(params);
+            // Reset infinite spinner visibility
+            if (infiniteSpinner) {
+                const { currentPage, totalPages } = window.catalogState;
+                // Keep spinner visible to allow observer to trigger next loads
+                infiniteSpinner.style.display = (currentPage < totalPages) ? 'block' : 'none';
+            }
+        } catch (e) {
+            console.error('Failed to fetch books', e);
+        }
+    }
+
+    setupInfiniteScroll();
+});
+</script>
+{% endblock %}

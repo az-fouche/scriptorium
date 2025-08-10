@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'navigation.nav_stats' | translate(current_language or 'en') }} - {{ 'home.hero_title' | translate(current_language or 'en') }}{% endblock %}
+
+{% block content %}
+<!-- Unified Stats Section: Hero + Overview + Top Authors -->
+<div class="hero-section">
+    <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+            <h1 class="hero-title">
+                <i class="fas fa-chart-bar me-3"></i>
+                {{ 'statistics.stats_library_statistics' | translate(current_language or 'en') }}
+            </h1>
+            <p class="hero-subtitle">
+                {{ 'statistics.stats_comprehensive_overview' | translate(current_language or 'en') }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="row mt-4">
+        <div class="col-md-6 mb-4">
+            <div class="stats-card animate-on-scroll">
+                <i class="fas fa-book stats-icon"></i>
+                <div class="stats-number">{{ total_books }}</div>
+                <div class="stats-label">{{ 'statistics.stats_total_books_label' | translate(current_language or 'en') }}</div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="stats-card animate-on-scroll">
+                <i class="fas fa-file-archive stats-icon"></i>
+                <div class="stats-number">{{ "%.1f"|format((size_stats.total_size or 0) / (1024*1024)) }}</div>
+                <div class="stats-label">{{ 'statistics.stats_total_size_mb' | translate(current_language or 'en') }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Authors -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3 class="section-title">
+                <i class="fas fa-users"></i>
+                {{ 'statistics.stats_top_authors' | translate(current_language or 'en') }}
+            </h3>
+        </div>
+        <div class="col-12">
+            <style>
+                .author-link { color: inherit; text-decoration: none; cursor: pointer; }
+                .author-link:hover { text-decoration: none; }
+                /* Keep hover highlight but avoid scaling rows on stats table */
+                #top-authors-card .table tbody tr:hover { transform: none !important; }
+                #top-authors-card .table tbody tr { transition: background 0.3s ease !important; }
+                /* Disable card hover transform within top authors card to prevent flicker */
+                #top-authors-card:hover { transform: none !important; box-shadow: none !important; }
+                /* Ensure link color remains visible across states */
+                #top-authors-card .table a,
+                #top-authors-card .table a:hover,
+                #top-authors-card .table a:visited,
+                #top-authors-card .table a:active,
+                #top-authors-card .table a:focus { color: inherit !important; text-decoration: none; }
+            </style>
+            <div class="chart-card animate-on-scroll" id="top-authors-card">
+                <div class="chart-body">
+                    {% if top_authors %}
+                    <div class="table-responsive" id="authors-table-container" style="max-height: 60vh; overflow-y: auto;">
+                        <table class="table table-hover" id="authors-table">
+                            <thead>
+                                <tr>
+                                    <th>{{ 'statistics.stats_rank' | translate(current_language or 'en') }}</th>
+                                    <th>{{ 'statistics.stats_author' | translate(current_language or 'en') }}</th>
+                                    <th>{{ 'statistics.stats_books_count' | translate(current_language or 'en') }}</th>
+                                    <th>{{ 'statistics.stats_percentage' | translate(current_language or 'en') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="authors-table-body">
+                                {% for author in top_authors %}
+                                <tr>
+                                    <td>
+                                        {% if loop.index == 1 %}
+                                        <span class="badge bg-warning">{{ 'rankings.rank_1st' | translate(current_language or 'en') }}</span>
+                                        {% elif loop.index == 2 %}
+                                        <span class="badge bg-secondary">{{ 'rankings.rank_2nd' | translate(current_language or 'en') }}</span>
+                                        {% elif loop.index == 3 %}
+                                        <span class="badge bg-info">{{ 'rankings.rank_3rd' | translate(current_language or 'en') }}</span>
+                                        {% else %}
+                                        <span class="badge bg-light text-dark">{{ loop.index }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if author.name %}
+                                            <a class="author-link" href="{{ url_for('books', search=author.name) }}">{{ author.name }}</a>
+                                        {% else %}
+                                            {{ 'book_details.book_unknown_author' | translate(current_language or 'en') }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ author.count }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar" style="width: {{ (author.count / total_books * 100)|round(1) }}%"></div>
+                                        </div>
+                                        <small class="text-muted">{{ (author.count / total_books * 100)|round(1) }}%</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div id="authors-loading" class="text-center py-3" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted">
+                        <i class="fas fa-info-circle fa-2x mb-3"></i>
+                        <p>{{ 'statistics.stats_no_author_data' | translate(current_language or 'en') }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const container = document.getElementById('authors-table-container');
+  const tbody = document.getElementById('authors-table-body');
+  const loadingEl = document.getElementById('authors-loading');
+  const totalBooks = {{ total_books | int }};
+
+  let offset = {{ top_authors|length if top_authors else 0 }};
+  const limit = 20;
+  let total = null;
+  let isLoading = false;
+
+  function computeRankBadge(index) {
+    if (index === 1) return '<span class="badge bg-warning">{{ 'rankings.rank_1st' | translate(current_language or 'en') }}</span>';
+    if (index === 2) return '<span class="badge bg-secondary">{{ 'rankings.rank_2nd' | translate(current_language or 'en') }}</span>';
+    if (index === 3) return '<span class="badge bg-info">{{ 'rankings.rank_3rd' | translate(current_language or 'en') }}</span>';
+    return '<span class="badge bg-light text-dark">' + index + '</span>';
+  }
+
+  async function loadMore() {
+    if (isLoading) return;
+    if (total !== null && offset >= total) return;
+    isLoading = true;
+    loadingEl.style.display = 'block';
+    try {
+      const response = await fetch(`{{ url_for('api_top_authors') }}?offset=${offset}&limit=${limit}`);
+      const data = await response.json();
+      total = data.total;
+      const items = data.items || [];
+      items.forEach((author, idx) => {
+        const rankIndex = offset + idx + 1;
+        const pct = totalBooks > 0 ? Math.round((author.count / totalBooks) * 1000) / 10 : 0;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${computeRankBadge(rankIndex)}</td>
+          <td>${author.name ? `<a class="author-link" href="${encodeURI(`{{ url_for('books') }}?search=`)}` + encodeURIComponent(author.name) + `">` + author.name + `</a>` : '{{ 'book_details.book_unknown_author' | translate(current_language or 'en') }}'}</td>
+          <td>${author.count}</td>
+          <td>
+            <div class="progress" style="height: 6px;">
+              <div class="progress-bar" style="width: ${pct}%;"></div>
+            </div>
+            <small class="text-muted">${pct}%</small>
+          </td>`;
+        tbody.appendChild(row);
+      });
+      offset += items.length;
+    } catch (e) {
+      console.error('Failed to load more authors', e);
+    } finally {
+      loadingEl.style.display = 'none';
+      isLoading = false;
+    }
+  }
+
+  if (container) {
+    container.addEventListener('scroll', function() {
+      const threshold = 80; // px from bottom
+      if (container.scrollTop + container.clientHeight >= container.scrollHeight - threshold) {
+        loadMore();
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

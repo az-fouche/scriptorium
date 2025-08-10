@@ -1,0 +1,146 @@
+{
+  "Technology": {
+    "keywords": ["computer", "software", "digital", "technology", "innovation", "cyber", "artificial intelligence"],
+    "description": "Technological and computing themes"
+  },
+  "Science": {
+    "keywords": ["science", "research", "experiment", "theory", "discovery", "analysis", "laboratory", "method"],
+    "description": "Scientific and research themes"
+  },
+  "Business": {
+    "keywords": ["business", "management", "strategy", "finance", "commerce", "entrepreneurship", "economy"],
+    "description": "Business and economic themes"
+  },
+  "History": {
+    "keywords": ["history", "historical", "past", "ancient", "era", "period", "chronicle", "civilization"],
+    "description": "Historical and past themes"
+  },
+  "Philosophy": {
+    "keywords": ["philosophy", "ethics", "morality", "thought", "existence", "meaning", "metaphysics", "logic"],
+    "description": "Philosophical and reflective themes"
+  },
+  "Religion": {
+    "keywords": ["religion", "spiritual", "faith", "god", "prayer", "sacred", "divine", "belief", "worship"],
+    "description": "Religious and spiritual themes"
+  },
+  "Arts & Culture": {
+    "keywords": ["art", "creative", "culture", "literature", "music", "artistic", "aesthetic", "creation"],
+    "description": "Artistic and cultural themes"
+  },
+  "Fantasy": {
+    "keywords": ["magic", "wizard", "fantasy", "world", "power", "spirit", "legend", "mythical", "enchanted"],
+    "description": "Fantastic and magical themes"
+  },
+  "Romance": {
+    "keywords": ["love", "romance", "passion", "heart", "emotion", "couple", "relationship", "lover"],
+    "description": "Romantic and love themes"
+  },
+  "Action & Adventure": {
+    "keywords": ["action", "battle", "war", "adventure", "fight", "combat", "exploration", "quest"],
+    "description": "Action and adventure themes"
+  },
+  "Mystery": {
+    "keywords": ["mystery", "enigma", "secret", "investigation", "detective", "puzzle", "clue", "enigmatic"],
+    "description": "Mysterious and investigative themes"
+  },
+  "Politics": {
+    "keywords": ["politics", "government", "power", "king", "kingdom", "democracy", "regime", "governance"],
+    "description": "Political and power themes"
+  },
+  "Society": {
+    "keywords": ["society", "social", "community", "group", "collective", "mores", "cultural", "social issues"],
+    "description": "Social and community themes"
+  },
+  "Nature": {
+    "keywords": ["nature", "environment", "ecology", "animal", "vegetable", "landscape", "ecological", "terrestrial"],
+    "description": "Natural and environmental themes"
+  },
+  "Travel": {
+    "keywords": ["travel", "tourism", "discovery", "country", "culture", "exotic", "journey", "exploration"],
+    "description": "Travel and discovery themes"
+  },
+  "Medical": {
+    "keywords": ["medical", "doctor", "hospital", "disease", "health", "diagnosis", "therapy", "clinical"],
+    "description": "Medical and health themes"
+  },
+  "Psychology": {
+    "keywords": ["psychology", "mental", "psychiatrist", "therapy", "psychoanalysis", "psychological", "mind"],
+    "description": "Psychological and mental themes"
+  },
+  "War": {
+    "keywords": ["war", "battle", "military", "soldier", "conflict", "combat", "army", "frontline"],
+    "description": "War and conflict themes"
+  },
+  "Horror": {
+    "keywords": ["horror", "fear", "ghost", "monster", "dark", "scary", "nightmare", "death", "terrifying"],
+    "description": "Horror and supernatural themes"
+  },
+  "Drama": {
+    "keywords": ["drama", "tragedy", "dramatic", "emotion", "pathetic", "suffering", "tragic"],
+    "description": "Dramatic and tragic themes"
+  },
+  "Satire": {
+    "keywords": ["satire", "irony", "parody", "criticism", "mockery", "humor", "sarcasm", "wit"],
+    "description": "Satirical and critical themes"
+  },
+  "Utopia": {
+    "keywords": ["utopia", "utopian", "ideal", "perfect", "ideal society", "paradise", "idealistic"],
+    "description": "Utopian and idealistic themes"
+  },
+  "Dystopia": {
+    "keywords": ["dystopia", "dystopian", "totalitarian", "oppression", "nightmare society", "apocalypse"],
+    "description": "Dystopian and post-apocalyptic themes"
+  },
+  "Erotic": {
+    "keywords": ["erotic", "sensual", "passion", "desire", "intimate", "lover", "sensuality"],
+    "description": "Erotic and sensual themes"
+  },
+  "Noir": {
+    "keywords": ["noir", "dark", "criminality", "gangster", "mafia", "corruption", "underworld"],
+    "description": "Noir and dark crime themes"
+  },
+  "Espionage": {
+    "keywords": ["espionage", "spy", "secret", "agent", "mission", "intelligence", "covert"],
+    "description": "Espionage and spy themes"
+  },
+  "Post-apocalyptic": {
+    "keywords": ["post-apocalyptic", "apocalypse", "survival", "desert", "ruins", "end of world"],
+    "description": "Post-apocalyptic themes"
+  },
+  "Steampunk": {
+    "keywords": ["steampunk", "steam", "mechanical", "retrofuturistic", "gear", "machines"],
+    "description": "Steampunk and retrofuturistic themes"
+  },
+  "Cyberpunk": {
+    "keywords": ["cyberpunk", "cyber", "hacker", "virtual", "network", "advanced technology"],
+    "description": "Cyberpunk and high-tech themes"
+  },
+  "Mythology": {
+    "keywords": ["mythology", "myth", "legend", "god", "goddess", "hero", "mythical"],
+    "description": "Mythological and legendary themes"
+  },
+  "Esotericism": {
+    "keywords": ["esotericism", "mystic", "occult", "spiritual", "meditation", "zen", "mystical"],
+    "description": "Esoteric and mystical themes"
+  },
+  "Cooking": {
+    "keywords": ["cooking", "gastronomy", "recipe", "food", "restaurant", "chef", "culinary", "cuisine"],
+    "description": "Culinary and gastronomic themes"
+  },
+  "Sports": {
+    "keywords": ["sports", "athlete", "competition", "match", "training", "performance", "athletic"],
+    "description": "Sports and athletic themes"
+  },
+  "Art": {
+    "keywords": ["art", "artistic", "painting", "sculpture", "museum", "creation", "aesthetic"],
+    "description": "Artistic and aesthetic themes"
+  },
+  "Music": {
+    "keywords": ["music", "musical", "concert", "instrument", "melody", "rhythm", "harmony"],
+    "description": "Musical themes"
+  },
+  "Film": {
+    "keywords": ["film", "cinema", "movie", "screenplay", "director", "actor", "cinematic"],
+    "description": "Film and cinematic themes"
+  }
+}

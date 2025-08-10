@@ -1,0 +1,96 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.env.*
+.venv/
+venv/
+env/
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# Caches
+.pytest_cache/
+.mypy_cache/
+.cache/
+
+# Logs and sessions
+logs/
+flask_session/
+webapp/flask_session/
+tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Databases backups
+databases/backups/
+
+# Python bytecode
+*$py.class
+*.py[cod]
+
+# Additional env files
+!.env.example
+.python-version
+
+# Packaging / wheels
+*.egg
+pip-wheel-metadata/
+.eggs/
+
+# Test / coverage
+.coverage*
+coverage.xml
+htmlcov/
+.pytest_cache/
+
+# Type checkers / linters
+.pytype/
+.pyre/
+.ruff_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Databases
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+webapp/databases/
+
+# Large data directories and generated artifacts
+data/RAW_LIBRARY/
+data/full_library/
+data/transfers/
+data/validation_report.txt
+
+# Keep curated resources
+!data/genres/
+!data/themes/
+
+# E-books and large binaries by default
+*.epub
+*.mobi
+*.pdf
+
+# But keep curated samples
+!data/small_library/**
+
+# Node (if present)
+node_modules/
+
+# Docker local files
+**/.docker*

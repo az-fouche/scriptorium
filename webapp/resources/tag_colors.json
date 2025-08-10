@@ -1,0 +1,30 @@
+{
+  "biography": "bg-success",
+  "classic": "bg-primary",
+  "coming-of-age": "bg-warning",
+  "contemporary-fiction": "bg-indigo",
+  "crime": "bg-dark",
+  "erotic": "bg-pink",
+  "essay": "bg-success",
+  "fantasy": "bg-purple",
+  "historical-fiction": "bg-warning",
+  "horror": "bg-danger",
+  "literary-fiction": "bg-indigo",
+  "memoir": "bg-success",
+  "mystery": "bg-dark",
+  "non-fiction": "bg-info",
+  "philosophy": "bg-purple",
+  "romance": "bg-pink",
+  "science-fiction": "bg-info",
+  "scientific": "bg-success",
+  "short-stories": "bg-purple",
+  "suspense": "bg-warning",
+  "teen-young-adult": "bg-success",
+  "thriller": "bg-danger",
+  "true-crime": "bg-dark",
+  "war": "bg-danger",
+  "western": "bg-warning",
+  "womens-fiction": "bg-pink"
+}
+
+

@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'navigation.nav_home' | translate(current_language or 'en') }} - {{ 'home.hero_title' | translate(current_language or 'en') }}{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+            <h1 class="hero-title">
+                <i class="fas fa-book-open me-3"></i>
+                {{ 'home.hero_title' | translate(current_language or 'en') }}
+            </h1>
+            <p class="hero-subtitle">
+                {{ 'home.hero_subtitle' | translate(current_language or 'en') }}
+            </p>
+            <div class="hero-buttons">
+                <a href="{{ url_for('books') }}" class="hero-btn hero-btn-primary">
+                    <i class="fas fa-books"></i>
+                    {{ 'home.hero_browse_books' | translate(current_language or 'en') }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Explore Section -->
+<div class="recent-books-section">
+    <div class="row">
+        <div class="col-12">
+            <h3 class="section-title">
+                <i class="fas fa-compass text-info"></i>
+                {{ 'statistics.stats_explore' | translate(current_language or 'en') }}
+            </h3>
+        </div>
+    </div>
+    
+    <div class="row" id="exploreBooksContainer">
+        {% for book in explore_books %}
+        <div class="col-6 col-md-3 col-lg-3 col-xl-3 mb-4" data-book-id="{{ book.id }}">
+            <div class="explore-card animate-on-scroll" style="--cover-image: url('{{ url_for('book_cover', book_id=book.id) }}');">
+                <a href="{{ url_for('book_detail', book_id=book.id) }}" class="explore-card-link" aria-label="{{ 'common.view' | translate(current_language or 'en') }} {{ book.title }}">
+                    <img src="{{ url_for('book_cover', book_id=book.id) }}" 
+                         alt="Cover of {{ book.title }}" 
+                         class="explore-card-img">
+                    <div class="explore-card-overlay">
+                        <div class="explore-card-overlay-content">
+                            <h6 class="explore-card-title" title="{{ book.title }}">{{ book.title }}</h6>
+                            <p class="explore-card-author" title="{% if book.authors %}{{ book.authors|join(', ') }}{% else %}{{ 'common.unknown' | translate(current_language or 'en') | title }} {{ 'book_details.book_author' | translate(current_language or 'en') }}{% endif %}">
+                                {% if book.authors %}
+                                    {{ book.authors|join(', ') }}
+                                {% else %}
+                                    {{ 'common.unknown' | translate(current_language or 'en') | title }} {{ 'book_details.book_author' | translate(current_language or 'en') }}
+                                {% endif %}
+                            </p>
+                            {% if book.description %}
+                            <p class="explore-card-desc">
+                                {{ (book.description | striptags) | truncate(220, True, '…') }}
+                            </p>
+                            {% endif %}
+                            <div class="book-tags mb-2">
+                                {% if book.primary_tag %}
+                                <span class="badge {{ book.primary_tag|primary_tag_color }} me-1">{{ book.primary_tag|tag_label(current_language or 'en') }}</span>
+                                {% endif %}
+                                {% if book.secondary_tags %}
+                                  {% for t in book.secondary_tags[:3] %}
+                                    <span class="badge bg-secondary text-dark me-1">{{ t|tag_label(current_language or 'en') }}</span>
+                                  {% endfor %}
+                                {% endif %}
+                            </div>
+                            <div class="explore-card-meta">
+                                <small class="text-muted">
+                                    <i class="fas fa-language me-1"></i>
+                                    {{ book.language or ('common.unknown' | translate(current_language or 'en') | title) }}
+                                </small>
+                                {% if book.word_count %}
+                                <small class="text-muted ms-3">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ book.word_count|reading_time|format_reading_time(current_language or 'en') }}
+                                </small>
+                                {% endif %}
+                                {% if book.reading_level %}
+                                <small class="text-muted ms-3 nowrap">
+                                    <i class="fas fa-graduation-cap me-1"></i>
+                                    {{ ('reading_levels.' ~ book.reading_level) | translate(current_language or 'en') }}
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div id="exploreSentinel" style="height: 1px"></div>
+</div>
+
+
+
+ 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const currentLanguage = "{{ (current_language or 'en') }}";
+  const container = document.getElementById('exploreBooksContainer');
+  const sentinel = document.getElementById('exploreSentinel');
+  if (!container || !sentinel) return;
+
+  const seenIds = new Set(Array.from(container.querySelectorAll('[data-book-id]')).map(el => el.getAttribute('data-book-id')));
+  let loading = false;
+  let done = false;
+
+  async function loadMoreRandomBooks() {
+    if (loading || done) return;
+    loading = true;
+    try {
+      const exclude = Array.from(seenIds).join(',');
+      const resp = await fetch(`/api/random_books?limit=4&exclude=${encodeURIComponent(exclude)}`);
+      if (!resp.ok) throw new Error('Failed to load');
+      const books = await resp.json();
+      if (!Array.isArray(books) || books.length === 0) {
+        done = true;
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      for (const book of books) {
+        if (seenIds.has(book.id)) continue;
+        seenIds.add(book.id);
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-3 col-lg-3 col-xl-3 mb-4';
+        col.setAttribute('data-book-id', book.id);
+        col.innerHTML = `
+          <div class="explore-card animate-on-scroll" style="--cover-image: url('${book.id ? '/cover/' + book.id : ''}');">
+            <a href="/book/${book.id}" class="explore-card-link" aria-label="View ${book.title}">
+              <img src="/cover/${book.id}" alt="Cover of ${escapeHtml(book.title || '')}" class="explore-card-img">
+              <div class="explore-card-overlay">
+                <div class="explore-card-overlay-content">
+                  <h6 class="explore-card-title" title="${escapeHtml(book.title || '')}">${escapeHtml(book.title || '')}</h6>
+                  <p class="explore-card-author" title="${escapeHtml((book.authors && book.authors.join(', ')) || '')}">
+                    ${escapeHtml((book.authors && book.authors.join(', ')) || '')}
+                  </p>
+                  ${book.description ? `<p class="explore-card-desc">${escapeHtml(stripHtml(book.description).slice(0, 220))}…</p>` : ''}
+                  <div class="book-tags mb-2">
+                     ${book.primary_tag ? `<span class=\"badge ${genreColor(book.primary_tag)} me-1\">${escapeHtml(tagLabel(book.primary_tag))}</span>` : ''}
+                     ${(book.secondary_tags || []).slice(0,3).map(t => `<span class=\"badge bg-secondary text-dark me-1\">${escapeHtml(tagLabel(t))}</span>`).join('')}
+                  </div>
+                  <div class="explore-card-meta">
+                    <small class="text-muted"><i class="fas fa-language me-1"></i>${escapeHtml(book.language || '')}</small>
+                    ${book.word_count ? `<small class="text-muted ms-3"><i class="fas fa-clock me-1"></i>${formatReadingTime(book.word_count)}</small>` : ''}
+                    ${book.reading_level ? `<small class="text-muted ms-3 nowrap"><i class="fas fa-graduation-cap me-1"></i>${escapeHtml(book.reading_level)}</small>` : ''}
+                  </div>
+                </div>
+              </div>
+            </a>
+          </div>`;
+        frag.appendChild(col);
+      }
+      container.appendChild(frag);
+      // Attach scroll animations to new items
+      document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
+    } catch (e) {
+      console.error(e);
+      done = true;
+    } finally {
+      loading = false;
+    }
+  }
+
+  function stripHtml(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent || div.innerText || '';
+  }
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text ?? '';
+    return div.innerHTML;
+  }
+  function formatReadingTime(wordCount) {
+    const minutes = Math.max(1, Math.round((wordCount || 0) / 250));
+    const hours = Math.max(1, Math.ceil(minutes / 60));
+    return currentLanguage === 'fr' ? `${hours} h` : `${hours}h`;
+  }
+  function genreColor(genre) {
+    const colors = window.tagColors || {};
+    return colors[String(genre)] || 'bg-secondary';
+  }
+
+  function tagLabel(tag) {
+    const labels = currentLanguage.startsWith('fr') ? (window.tagLabelsFr || {}) : (window.tagLabelsEn || {});
+    const key = String(tag || '');
+    return labels[key] || (key.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
+  }
+
+  const infiniteObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        loadMoreRandomBooks();
+      }
+    }
+  }, { rootMargin: '200px 0px' });
+  infiniteObserver.observe(sentinel);
+});
+</script>
+{% endblock %}

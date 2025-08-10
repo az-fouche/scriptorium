@@ -1,0 +1,198 @@
+{
+  "Science Fiction": {
+    "keywords": ["space", "planet", "alien", "future", "technology", "robot", "cyber", "dystopia", "spaceship", "extraterrestrial"],
+    "description": "Speculative fiction with scientific elements"
+  },
+  "Fantasy": {
+    "keywords": ["magic", "wizard", "dragon", "kingdom", "quest", "spell", "mythical", "enchanted", "sorcerer", "legend"],
+    "description": "Fiction with magical and supernatural elements"
+  },
+  "Mystery": {
+    "keywords": ["detective", "murder", "crime", "investigation", "clue", "suspense", "mystery", "sleuth", "whodunit"],
+    "description": "Detective and mystery novels"
+  },
+  "Romance": {
+    "keywords": ["love", "romance", "relationship", "passion", "heart", "kiss", "marriage", "couple", "affection"],
+    "description": "Love stories and romantic fiction"
+  },
+  "Thriller": {
+    "keywords": ["suspense", "thriller", "danger", "chase", "escape", "tension", "action", "adrenaline", "pursuit"],
+    "description": "Suspense and thriller novels"
+  },
+  "Horror": {
+    "keywords": ["horror", "fear", "ghost", "monster", "dark", "scary", "nightmare", "death", "terrifying", "macabre"],
+    "description": "Horror and supernatural fiction"
+  },
+  "Historical Fiction": {
+    "keywords": ["historical", "period", "ancient", "medieval", "victorian", "war", "era", "past", "timeline"],
+    "description": "Historical fiction and period novels"
+  },
+  "Biography": {
+    "keywords": ["biography", "life", "autobiography", "memoir", "personal", "story", "existence", "destiny"],
+    "description": "Biographies and autobiographies"
+  },
+  "Self-Help": {
+    "keywords": ["self-help", "motivation", "success", "improvement", "guidance", "advice", "personal development"],
+    "description": "Self-help and personal development"
+  },
+  "Business": {
+    "keywords": ["business", "management", "leadership", "strategy", "marketing", "finance", "entrepreneurship"],
+    "description": "Business and management books"
+  },
+  "Philosophy": {
+    "keywords": ["philosophy", "ethics", "morality", "existence", "meaning", "thought", "metaphysics", "logic"],
+    "description": "Philosophical works and ethics"
+  },
+  "Religion": {
+    "keywords": ["religion", "spiritual", "faith", "god", "prayer", "sacred", "divine", "belief", "worship"],
+    "description": "Religious and spiritual works"
+  },
+  "Science": {
+    "keywords": ["science", "research", "experiment", "theory", "discovery", "analysis", "laboratory", "method"],
+    "description": "Scientific works and research"
+  },
+  "Technology": {
+    "keywords": ["technology", "computer", "software", "digital", "innovation", "programming", "artificial intelligence"],
+    "description": "Technology and innovation books"
+  },
+  "History": {
+    "keywords": ["history", "historical", "past", "event", "timeline", "civilization", "ancient", "chronicle"],
+    "description": "Historical works and chronicles"
+  },
+  "Politics": {
+    "keywords": ["politics", "government", "policy", "election", "democracy", "political", "regime", "governance"],
+    "description": "Political works and governance"
+  },
+  "Poetry": {
+    "keywords": ["poetry", "poem", "verse", "rhyme", "stanza", "lyrical", "metaphor", "poetic"],
+    "description": "Poetry and verse"
+  },
+  "Drama": {
+    "keywords": ["drama", "theater", "play", "act", "scene", "performance", "theatrical", "stage"],
+    "description": "Drama and theatrical works"
+  },
+  "Comedy": {
+    "keywords": ["comedy", "humor", "funny", "joke", "laugh", "satire", "comic", "amusing"],
+    "description": "Comedy and humorous works"
+  },
+  "Adventure": {
+    "keywords": ["adventure", "journey", "exploration", "quest", "expedition", "travel", "explorer", "discovery"],
+    "description": "Adventure and exploration stories"
+  },
+  "Crime": {
+    "keywords": ["crime", "criminal", "gang", "heist", "robbery", "justice", "law", "underworld"],
+    "description": "Crime fiction and criminal stories"
+  },
+  "War": {
+    "keywords": ["war", "battle", "military", "soldier", "conflict", "combat", "army", "frontline"],
+    "description": "War and military fiction"
+  },
+  "Western": {
+    "keywords": ["western", "cowboy", "frontier", "ranch", "outlaw", "wild west", "pioneer", "sheriff"],
+    "description": "Western novels and frontier stories"
+  },
+  "Young Adult": {
+    "keywords": ["teen", "adolescent", "coming of age", "high school", "young adult", "teenage", "youth"],
+    "description": "Young adult literature"
+  },
+  "Children": {
+    "keywords": ["children", "kid", "child", "young", "simple", "educational", "juvenile", "elementary"],
+    "description": "Children's literature and educational books"
+  },
+  "Educational": {
+    "keywords": ["educational", "learn", "study", "teach", "instruction", "academic", "pedagogy", "learning"],
+    "description": "Educational and instructional books"
+  },
+  "Reference": {
+    "keywords": ["reference", "guide", "manual", "encyclopedia", "dictionary", "handbook", "textbook"],
+    "description": "Reference books and manuals"
+  },
+  "Action": {
+    "keywords": ["action", "battle", "war", "adventure", "fight", "combat", "violence", "explosive"],
+    "description": "Action and combat stories"
+  },
+  "Satire": {
+    "keywords": ["satire", "irony", "parody", "criticism", "mockery", "humor", "sarcasm", "wit"],
+    "description": "Satirical and critical works"
+  },
+  "Utopia": {
+    "keywords": ["utopia", "utopian", "ideal", "perfect", "ideal society", "paradise", "idealistic"],
+    "description": "Utopian and idealistic fiction"
+  },
+  "Dystopia": {
+    "keywords": ["dystopia", "dystopian", "totalitarian", "oppression", "nightmare society", "apocalypse"],
+    "description": "Dystopian and post-apocalyptic fiction"
+  },
+  "Medical": {
+    "keywords": ["medical", "doctor", "hospital", "disease", "health", "diagnosis", "therapy", "clinical"],
+    "description": "Medical and health books"
+  },
+  "Psychology": {
+    "keywords": ["psychology", "mental", "psychiatrist", "therapy", "psychoanalysis", "psychological", "mind"],
+    "description": "Psychological and mental health books"
+  },
+  "Society": {
+    "keywords": ["society", "social", "community", "group", "collective", "mores", "cultural", "social issues"],
+    "description": "Social issues and community books"
+  },
+  "Nature": {
+    "keywords": ["nature", "environment", "ecology", "animal", "vegetable", "landscape", "ecological"],
+    "description": "Nature and environmental books"
+  },
+  "Travel": {
+    "keywords": ["travel", "tourism", "discovery", "country", "culture", "exotic", "journey", "exploration"],
+    "description": "Travel and discovery books"
+  },
+  "Cooking": {
+    "keywords": ["cooking", "gastronomy", "recipe", "food", "restaurant", "chef", "culinary", "cuisine"],
+    "description": "Cooking and culinary books"
+  },
+  "Sports": {
+    "keywords": ["sports", "athlete", "competition", "match", "training", "performance", "athletic"],
+    "description": "Sports and athletic books"
+  },
+  "Art": {
+    "keywords": ["art", "artistic", "painting", "sculpture", "museum", "creation", "aesthetic"],
+    "description": "Art and artistic books"
+  },
+  "Music": {
+    "keywords": ["music", "musical", "concert", "instrument", "melody", "rhythm", "harmony"],
+    "description": "Music and musical books"
+  },
+  "Film": {
+    "keywords": ["film", "cinema", "movie", "screenplay", "director", "actor", "cinematic"],
+    "description": "Film and cinematic books"
+  },
+  "Mythology": {
+    "keywords": ["mythology", "myth", "legend", "god", "goddess", "hero", "mythical"],
+    "description": "Mythological and legendary books"
+  },
+  "Esotericism": {
+    "keywords": ["esotericism", "mystic", "occult", "spiritual", "meditation", "zen", "mystical"],
+    "description": "Esoteric and mystical books"
+  },
+  "Erotic": {
+    "keywords": ["erotic", "sensual", "passion", "desire", "intimate", "lover", "sensuality"],
+    "description": "Erotic and sensual fiction"
+  },
+  "Noir": {
+    "keywords": ["noir", "dark", "criminality", "gangster", "mafia", "corruption", "underworld"],
+    "description": "Noir and dark crime fiction"
+  },
+  "Espionage": {
+    "keywords": ["espionage", "spy", "secret", "agent", "mission", "intelligence", "covert"],
+    "description": "Espionage and spy fiction"
+  },
+  "Post-apocalyptic": {
+    "keywords": ["post-apocalyptic", "apocalypse", "survival", "desert", "ruins", "end of world"],
+    "description": "Post-apocalyptic fiction"
+  },
+  "Steampunk": {
+    "keywords": ["steampunk", "steam", "mechanical", "retrofuturistic", "gear", "machines"],
+    "description": "Steampunk and retrofuturistic fiction"
+  },
+  "Cyberpunk": {
+    "keywords": ["cyberpunk", "cyber", "hacker", "virtual", "network", "advanced technology"],
+    "description": "Cyberpunk and high-tech fiction"
+  }
+}

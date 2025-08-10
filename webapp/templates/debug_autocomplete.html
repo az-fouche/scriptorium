@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autocomplete Debug</title>
+    <style>
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .autocomplete-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .autocomplete-item:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .autocomplete-item-icon {
+            width: 20px;
+            text-align: center;
+        }
+        
+        .autocomplete-item-text {
+            flex: 1;
+        }
+        
+        .autocomplete-item-meta {
+            font-size: 0.8em;
+            color: #666;
+        }
+        
+        .autocomplete-item-type {
+            font-size: 0.7em;
+            padding: 2px 6px;
+            background: #007bff;
+            color: white;
+            border-radius: 3px;
+        }
+        
+        .position-relative {
+            position: relative;
+        }
+        
+        .input-group {
+            display: flex;
+        }
+        
+        .form-control {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: 1px solid #007bff;
+            background: #007bff;
+            color: white;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+        
+        .debug-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div style="max-width: 600px; margin: 50px auto; padding: 20px;">
+        <h1>Autocomplete Debug</h1>
+        
+        <div class="position-relative">
+            <div class="input-group">
+                <input type="text" class="form-control" name="q" value="" 
+                       placeholder="Search for books, authors, or descriptions..." 
+                       autocomplete="off" id="searchInput">
+                <button class="btn" type="submit">
+                    Search
+                </button>
+            </div>
+            <!-- Autocomplete dropdown -->
+            <div id="autocompleteDropdown" class="autocomplete-dropdown" style="display: none;">
+                <div id="autocompleteList" class="autocomplete-list"></div>
+            </div>
+        </div>
+        
+        <div class="debug-info">
+            <h3>Debug Information</h3>
+            <div id="debugOutput"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+            const autocompleteList = document.getElementById('autocompleteList');
+            const debugOutput = document.getElementById('debugOutput');
+            let currentSuggestions = [];
+            let selectedIndex = -1;
+            let debounceTimer;
+
+            function log(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                debugOutput.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+                console.log(message);
+            }
+
+            // Auto-focus search input
+            if (searchInput) {
+                searchInput.focus();
+                log('Search input focused');
+            }
+
+            // Fetch autocomplete suggestions
+            async function fetchSuggestions(query) {
+                log(`Fetching suggestions for query: "${query}"`);
+                
+                if (query.length < 2) {
+                    log('Query too short, hiding autocomplete');
+                    hideAutocomplete();
+                    return;
+                }
+
+                try {
+                    const url = `/api/autocomplete?q=${encodeURIComponent(query)}`;
+                    log(`Making request to: ${url}`);
+                    
+                    const response = await fetch(url);
+                    log(`Response status: ${response.status}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const suggestions = await response.json();
+                    log(`Received ${suggestions.length} suggestions: ${JSON.stringify(suggestions)}`);
+                    
+                    currentSuggestions = suggestions;
+                    displaySuggestions(suggestions);
+                } catch (error) {
+                    log(`Error fetching suggestions: ${error.message}`);
+                    console.error('Error fetching suggestions:', error);
+                    hideAutocomplete();
+                }
+            }
+
+            // Display suggestions in dropdown
+            function displaySuggestions(suggestions) {
+                if (suggestions.length === 0) {
+                    log('No suggestions to display');
+                    hideAutocomplete();
+                    return;
+                }
+
+                log(`Displaying ${suggestions.length} suggestions`);
+                autocompleteList.innerHTML = '';
+                
+                suggestions.forEach((suggestion, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    item.dataset.index = index;
+                    
+                    const icon = suggestion.type === 'title' ? '📖' : '👤';
+                    const typeLabel = suggestion.type === 'title' ? 'Book' : 'Author';
+                    
+                    item.innerHTML = `
+                        <span class="autocomplete-item-icon">${icon}</span>
+                        <div class="autocomplete-item-text">${escapeHtml(suggestion.text)}</div>
+                        <div class="autocomplete-item-meta">
+                            ${suggestion.type === 'title' ? escapeHtml(suggestion.author || '') : ''}
+                        </div>
+                        <span class="autocomplete-item-type">${typeLabel}</span>
+                    `;
+                    
+                    item.addEventListener('click', () => {
+                        log(`Selected suggestion: ${suggestion.text}`);
+                        selectSuggestion(suggestion);
+                    });
+                    
+                    item.addEventListener('mouseenter', () => {
+                        selectedIndex = index;
+                        updateSelection();
+                    });
+                    
+                    autocompleteList.appendChild(item);
+                });
+                
+                autocompleteDropdown.style.display = 'block';
+                selectedIndex = -1;
+                log('Autocomplete dropdown shown');
+            }
+
+            // Hide autocomplete dropdown
+            function hideAutocomplete() {
+                autocompleteDropdown.style.display = 'none';
+                selectedIndex = -1;
+                log('Autocomplete dropdown hidden');
+            }
+
+            // Select a suggestion
+            function selectSuggestion(suggestion) {
+                searchInput.value = suggestion.text;
+                hideAutocomplete();
+                searchInput.focus();
+                log(`Search input updated with: ${suggestion.text}`);
+            }
+
+            // Update keyboard selection
+            function updateSelection() {
+                const items = autocompleteList.querySelectorAll('.autocomplete-item');
+                items.forEach((item, index) => {
+                    if (index === selectedIndex) {
+                        item.style.backgroundColor = '#e3f2fd';
+                    } else {
+                        item.style.backgroundColor = '';
+                    }
+                });
+            }
+
+            // Escape HTML to prevent XSS
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            // Input event handler with debouncing
+            searchInput.addEventListener('input', function() {
+                const query = this.value;
+                log(`Input event: "${query}"`);
+                
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    log(`Debounced fetch for: "${query}"`);
+                    fetchSuggestions(query);
+                }, 300);
+            });
+
+            // Keyboard navigation
+            searchInput.addEventListener('keydown', function(e) {
+                if (autocompleteDropdown.style.display === 'none') return;
+
+                switch (e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        selectedIndex = Math.min(selectedIndex + 1, currentSuggestions.length - 1);
+                        updateSelection();
+                        log(`Arrow down - selected index: ${selectedIndex}`);
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        selectedIndex = Math.max(selectedIndex - 1, -1);
+                        updateSelection();
+                        log(`Arrow up - selected index: ${selectedIndex}`);
+                        break;
+                    case 'Enter':
+                        e.preventDefault();
+                        if (selectedIndex >= 0 && currentSuggestions[selectedIndex]) {
+                            log(`Enter pressed - selecting suggestion at index ${selectedIndex}`);
+                            selectSuggestion(currentSuggestions[selectedIndex]);
+                        } else {
+                            log('Enter pressed - submitting form');
+                            this.form.submit();
+                        }
+                        break;
+                    case 'Escape':
+                        log('Escape pressed - hiding autocomplete');
+                        hideAutocomplete();
+                        break;
+                }
+            });
+
+            // Hide autocomplete when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !autocompleteDropdown.contains(e.target)) {
+                    hideAutocomplete();
+                }
+            });
+
+            log('Autocomplete script loaded');
+        });
+    </script>
+</body>
+</html>

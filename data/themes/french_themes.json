@@ -1,0 +1,148 @@
+{
+  "Technologie": [
+    "ordinateur", "logiciel", "numérique", "technologie", "informatique", "digital", "innovation",
+    "cyber", "électronique", "électrique", "mécanique", "automatique", "robotique", "intelligence artificielle", 
+    "machine", "appareil", "dispositif", "instrument", "outil", "équipement", "matériel", "hardware", "software", 
+    "firmware", "programme", "application", "système", "plateforme", "interface utilisateur", "expérience", 
+    "design", "architecture", "structure", "organisation", "gestion", "administration", "supervision", "contrôle", 
+    "surveillance", "monitoring", "tracking", "géolocalisation", "GPS", "satellite", "orbite", "navigation", 
+    "guidage", "pilotage", "localisation", "position", "coordonnées", "connectivité", "wifi", "bluetooth", "câble", 
+    "fibre optique", "laser", "photonique", "quantique", "nanotechnologie", "biotechnologie", "génétique", "cyborg", 
+    "android", "réalité virtuelle", "simulation", "hologramme", "téléportation", "voyage temporel", "multivers", 
+    "hyperespace"
+  ],
+  "Science": [
+    "science", "recherche", "expérience", "théorie", "laboratoire", "scientifique", "découverte", "méthode", 
+    "expérimentation", "observation", "analyse", "étude", "investigation", "enquête", "exploration", "vérification", 
+    "validation", "certification", "brevet", "propriété intellectuelle", "création", "invention", "innovation", 
+    "développement", "progrès", "amélioration", "optimisation", "perfectionnement", "affinement", "polissage", 
+    "finition", "achèvement", "complétion", "résolution", "preuve", "évidence", "caractéristique", "qualité", 
+    "nature", "énergie", "force", "puissance"
+  ],
+  "Affaires": [
+    "entreprise", "gestion", "stratégie", "finance", "commerce", "business", "management", "économie", "administration", 
+    "direction", "leadership", "gouvernance", "consultation", "expertise", "compétence", "profession", "carrière", 
+    "emploi", "occupation", "responsabilité", "devoir", "engagement", "contrat", "partenariat", "collaboration", 
+    "investissement", "capital", "fonds", "budget", "comptabilité", "audit", "vérification", "contrôle", "supervision", 
+    "évaluation", "appréciation", "jugement"
+  ],
+  "Histoire": [
+    "histoire", "historique", "époque", "période", "civilisation", "antiquité", "médiéval", "renaissance", "moderne", 
+    "contemporain", "chronologie", "évolution", "progression", "dégradation", "chute", "construction", "fondation", 
+    "institution", "organisation", "structure", "contexte", "environnement", "milieu"
+  ],
+  "Philosophie": [
+    "philosophie", "éthique", "morale", "pensée", "réflexion", "existence", "absurde", "liberté", "vie", "mort", 
+    "conscience", "esprit", "âme", "matière", "énergie", "espace", "temps", "causalité", "déterminisme", "hasard", 
+    "nécessité", "idéal", "réel", "abstrait", "universel", "particulier", "général", "essence", "être", "néant", 
+    "changement", "évolution", "progrès", "régression", "perfection", "complétude", "totalité", "fragment", "cause", 
+    "effet", "conséquence"
+  ],
+  "Religion": [
+    "religion", "spiritualité", "foi", "croyance", "divinité", "créateur", "prière", "béatitude", "grâce", "bénédiction", 
+    "péché", "vertu", "paradis", "enfer", "réincarnation", "transmigration", "fantôme", "vision", "révélation", 
+    "prophétie", "miracle", "mystique", "ésotérisme", "rituel", "cérémonie", "sacrifice", "offrande", "charité", "pèlerinage"
+  ],
+  "Arts & Culture": [
+    "art", "culture", "littérature", "musique", "esthétique", "création", "peinture", "sculpture", "photographie", "cinéma", 
+    "théâtre", "danse", "opéra", "concert", "spectacle", "exposition", "galerie", "œuvre", "originalité", "imagination", 
+    "inspiration", "génie", "talent", "compétence", "savoir-faire", "technique", "méthode", "procédé"
+  ],
+  "Fantasy": [
+    "magie", "sorcier", "fantastique", "monde", "pouvoir", "esprit", "légende", "mythique", "sorcellerie", "enchantement", 
+    "sort", "incantation", "rituel", "créature", "monstre", "bête", "animal", "félin", "canin", "aquatique", "aérien", 
+    "souterrain", "forestier", "tropical", "tempéré", "marais", "mangrove", "récif"
+  ],
+  "Romance": [
+    "amour", "romance", "passion", "sentiment", "couple", "relation", "amoureux", "séduire", "charmer", "baiser", 
+    "embrasser", "étreindre", "tendre", "affectueux", "désir", "envie", "convoitise", "appétit", "faim", "besoin"
+  ],
+  "Action & Aventure": [
+    "action", "combat", "bataille", "guerre", "aventure", "quête", "péril", "danger", "risque", "audacieux", "courageux", 
+    "brave", "héroïque", "épique", "extraordinaire", "exceptionnel", "considérable", "majeur", "fondamental"
+  ],
+  "Mystère": [
+    "mystère", "énigme", "secret", "enquête", "détective", "puzzle", "cryptique", "obscur", "étrange", "curieux", 
+    "insolite", "bizarre", "original", "novateur", "astucieux", "ingénieux", "savant"
+  ],
+  "Politique": [
+    "politique", "gouvernement", "pouvoir", "démocratie", "régime", "gouvernance", "administration", "ministre", 
+    "président", "leader", "dirigeant", "commandant", "soldat"
+  ],
+  "Société": [
+    "société", "communauté", "groupe", "collectif", "culturel", "humain", "individu", "citoyen", "habitant", "voisin", 
+    "compatriote", "national", "étranger", "immigré", "réfugié", "exilé"
+  ],
+  "Nature": [
+    "nature", "environnement", "écologie", "flore", "faune", "biodiversité", "écosystème", "milieu", "climat", "saison", 
+    "météo", "température", "humidité"
+  ],
+  "Voyage": [
+    "voyage", "tourisme", "découverte", "pays", "exploration", "expédition", "quête", "recherche", "investigation", 
+    "étude", "analyse", "inspection", "vérification"
+  ],
+  "Médical": [
+    "médical", "médecin", "hôpital", "maladie", "santé", "diagnostic", "thérapie", "clinique", "soin", "traitement", 
+    "guérison", "convalescence", "réhabilitation", "neurologie", "cardiologie", "dermatologie"
+  ],
+  "Psychologique": [
+    "psychologique", "psychologie", "mental", "psychiatre", "thérapie", "conscience", "inconscient", "émotion", "réflexion"
+  ],
+  "Guerre": [
+    "guerre", "conflit", "bataille", "armée", "combat", "offensive", "défensive", "stratégie", "tactique"
+  ],
+  "Horreur": [
+    "horreur", "épouvante", "terreur", "monstre", "sang", "cauchemar", "effroi", "macabre", "sinistre", "terrifiant"
+  ],
+  "Drame": [
+    "drame", "tragédie", "souffrance", "douloureux", "déchirant", "émotion", "pathétique"
+  ],
+  "Satire": [
+    "satire", "ironie", "parodie", "moquerie", "sarcasme", "humour noir", "grotesque", "comique", "absurde"
+  ],
+  "Utopie": [
+    "utopie", "idéal", "société idéale", "harmonie", "équilibre", "paix", "tranquillité", "sérénité", "calme", "repos"
+  ],
+  "Dystopie": [
+    "dystopie", "totalitaire", "oppression", "apocalypse", "catastrophe", "tragédie", "malheur", "infortune", "épreuve"
+  ],
+  "Érotique": [
+    "érotique", "sensuel", "passion", "désir", "intime", "amoureux", "séduction", "attraction", "fascination"
+  ],
+  "Polar": [
+    "polar", "noir", "criminalité", "gangster", "mafia", "corruption", "pègre", "voleur", "escroc", "arnaqueur"
+  ],
+  "Espionnage": [
+    "espionnage", "espion", "mission", "renseignement", "secret", "clandestin", "confidentiel", "privé"
+  ],
+  "Post-apocalyptique": [
+    "post-apocalyptique", "survie", "ruines", "fin du monde", "destruction", "anéantissement", "extermination"
+  ],
+  "Steampunk": [
+    "steampunk", "vapeur", "rétrofuturiste", "engrenage", "machines", "mécanisme", "dispositif", "matériel"
+  ],
+  "Cyberpunk": [
+    "cyberpunk", "hacker", "réseau", "futuriste", "high-tech", "sophistiqué", "évolué", "développé"
+  ],
+  "Mythologie": [
+    "mythologie", "mythe", "légende", "dieu", "héros", "mythique", "fabuleux", "héroïque", "intrépide"
+  ],
+  "Ésotérisme": [
+    "ésotérisme", "occultisme", "mystique", "spirituel", "méditation", "zen", "mystérieux", "secret"
+  ],
+  "Cuisine": [
+    "cuisine", "gastronomie", "recette", "alimentation", "restaurant", "chef", "gastronomique", "culinaire"
+  ],
+  "Sport": [
+    "sport", "athlète", "compétition", "match", "entraînement", "performance", "athlétique", "musculaire"
+  ],
+  "Art": [
+    "art", "artistique", "peinture", "sculpture", "musée", "création", "esthétique", "beauté", "symétrie", "désordre"
+  ],
+  "Musique": [
+    "musique", "instrument", "mélodie", "rythme", "harmonie", "symphonie", "orchestre", "ensemble"
+  ],
+  "Cinéma": [
+    "cinéma", "film", "scénario", "réalisateur", "acteur", "caméra", "objectif", "focale", "projection"
+  ]
+}
