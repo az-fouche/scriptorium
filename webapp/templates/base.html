@@ -2080,6 +2080,19 @@
         document.addEventListener('DOMContentLoaded', () => {
             const animatedElements = document.querySelectorAll('.animate-on-scroll');
             animatedElements.forEach(el => observer.observe(el));
+            // Also observe future dynamically inserted elements
+            const booksGrid = document.getElementById('books-grid');
+            if (booksGrid) {
+                const mo = new MutationObserver((mutations) => {
+                    for (const m of mutations) {
+                        m.addedNodes.forEach(node => {
+                            if (!(node instanceof HTMLElement)) return;
+                            node.querySelectorAll?.('.animate-on-scroll').forEach(el => observer.observe(el));
+                        });
+                    }
+                });
+                mo.observe(booksGrid, { childList: true });
+            }
         });
 
             // Staggered animation utility (no-op if elements absent)

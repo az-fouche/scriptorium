@@ -447,8 +447,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // Render grid
         if (grid) {
             const rows = books.map(book => `
-            <div class="col-6 col-md-3 col-lg-3 col-xl-3 mb-4">
-              <div class="explore-card animate-on-scroll" style="--cover-image: url('/cover/${encodeURIComponent(book.id)}');">
+            <div class=\"col-6 col-md-3 col-lg-3 col-xl-3 mb-4\">
+              <div class=\"explore-card animate-on-scroll\" style=\"--cover-image: url('/cover/${encodeURIComponent(book.id)}');\">
                 <a href="/book/${encodeURIComponent(book.id)}" class="explore-card-link" aria-label="View ${escapeHtml(book.title || '')}">
                   <img src="/cover/${encodeURIComponent(book.id)}" alt="Cover of ${escapeHtml(book.title || '')}" class="explore-card-img" loading="lazy" decoding="async">
                   <div class="explore-card-overlay">
@@ -469,12 +469,46 @@ document.addEventListener('DOMContentLoaded', function () {
             const gridRow = document.querySelector('#books-grid');
             if (gridRow) {
                 if (window.catalogState && window.catalogState.append) {
+                    const beforeCount = gridRow.children.length;
                     gridRow.insertAdjacentHTML('beforeend', rows);
+                    const afterCount = gridRow.children.length;
+                    const newlyAdded = Array.from(gridRow.children).slice(beforeCount, afterCount);
+                    // Animate only newly appended items with a subtle left-to-right fade/slide
+                    newlyAdded.forEach((colEl, idx) => {
+                        // Animate the column wrapper for a more reliable effect
+                        colEl.classList.add('fade-slide-in-left');
+                        const delay = Math.min(idx * 60, 360);
+                        colEl.style.transitionDelay = `${delay}ms`;
+                        // Remove scroll animation classes inside to avoid instant pop-in
+                        colEl.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.remove('animate-on-scroll','animated'));
+                        // Also ensure the inner card starts from the same initial state (optional, double-safe)
+                        const card = colEl.querySelector('.explore-card');
+                        if (card && !card.classList.contains('fade-slide-in-left')) {
+                            card.classList.add('fade-slide-in-left');
+                            card.style.transitionDelay = `${delay}ms`;
+                            void card.offsetWidth;
+                            requestAnimationFrame(() => { card.classList.add('show'); });
+                            setTimeout(() => { try { card.style.transitionDelay = ''; } catch {} }, 400 + delay);
+                        }
+                        // Force reflow on column, then toggle show
+                        void colEl.offsetWidth;
+                        requestAnimationFrame(() => {
+                            colEl.classList.add('show');
+                        });
+                        setTimeout(() => { try { colEl.style.transitionDelay = ''; } catch {} }, 400 + delay);
+                    });
+                    // Fallback: if, for any reason, some items didn't toggle to visible, force-show them
+                    setTimeout(() => {
+                        gridRow.querySelectorAll('.fade-slide-in-left:not(.show)').forEach(el => el.classList.add('show'));
+                    }, 600);
+                    setTimeout(() => {
+                        gridRow.querySelectorAll('.fade-slide-in-left:not(.show)').forEach(el => el.classList.add('show'));
+                    }, 1800);
                 } else {
                     gridRow.innerHTML = rows;
+                    // For initial render or filter change, reveal immediately without big motion
+                    gridRow.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('animated'));
                 }
-                // Make dynamically added cards visible (bypass initial scroll observer)
-                gridRow.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('animated'));
             }
         }
 

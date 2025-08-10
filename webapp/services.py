@@ -503,8 +503,122 @@ class StatisticsService:
 
 
 class RecommendationService:
-    """Deprecated: recommendations removed with book detail page"""
-    pass
+    """Service for book recommendations"""
+    
+    def __init__(self):
+        self.books = {}
+        self.load_books()
+    
+    def load_books(self):
+        """Load all books from database"""
+        books = Book.query.all()
+        items = [book.to_dict() for book in books]
+        BookService._derive_primary_secondary_for_items(items)
+        for data in items:
+            self.books[data['id']] = data
+    
+    def get_recommendations(self, book_id: str, limit: int = 5) -> List[Dict]:
+        """Get recommendations for a book"""
+        if book_id not in self.books:
+            return []
+        
+        target_book = self.books[book_id]
+        recommendations = []
+        
+        for other_id, other_book in self.books.items():
+            if other_id == book_id:
+                continue
+            
+            # Calculate similarity score
+            score = self._calculate_similarity(target_book, other_book)
+            recommendations.append({
+                'book': other_book,
+                'score': score,
+                'reasons': self._get_recommendation_reasons(target_book, other_book, score)
+            })
+        
+        # Sort by score and return top recommendations
+        recommendations.sort(key=lambda x: x['score'], reverse=True)
+        return recommendations[:limit]
+    
+    def _calculate_similarity(self, book1: Dict, book2: Dict) -> float:
+        """Calculate similarity between two books"""
+        score = 0.0
+        
+        # Language similarity (high weight)
+        if book1.get('language') == book2.get('language'):
+            score += 0.3
+        
+        # Author similarity (high weight)
+        authors1 = set(book1.get('authors', []))
+        authors2 = set(book2.get('authors', []))
+        if authors1 and authors2:
+            author_overlap = len(authors1.intersection(authors2))
+            if author_overlap > 0:
+                score += 0.4
+        
+        # Subject similarity (medium weight)
+        subjects1 = set(book1.get('subjects', []))
+        subjects2 = set(book2.get('subjects', []))
+        if subjects1 and subjects2:
+            subject_overlap = len(subjects1.intersection(subjects2))
+            if subject_overlap > 0:
+                score += 0.2 * subject_overlap
+        
+        # Publisher similarity (low weight)
+        if book1.get('publisher') == book2.get('publisher'):
+            score += 0.1
+        
+        # Word count similarity (low weight)
+        wc1 = book1.get('word_count', 0)
+        wc2 = book2.get('word_count', 0)
+        if wc1 > 0 and wc2 > 0:
+            wc_diff = abs(wc1 - wc2) / max(wc1, wc2)
+            score += 0.1 * (1 - wc_diff)
+        
+        return min(score, 1.0)
+    
+    def _get_recommendation_reasons(self, book1: Dict, book2: Dict, score: float) -> List[str]:
+        """Get reasons for recommendation"""
+        reasons = []
+        
+        # Author reasons
+        authors1 = set(book1.get('authors', []))
+        authors2 = set(book2.get('authors', []))
+        if authors1 and authors2:
+            common_authors = authors1.intersection(authors2)
+            if common_authors:
+                reasons.append({
+                    'type': 'recommendations_same_author',
+                    'value': ', '.join(common_authors)
+                })
+        
+        # Subject reasons
+        subjects1 = set(book1.get('subjects', []))
+        subjects2 = set(book2.get('subjects', []))
+        if subjects1 and subjects2:
+            common_subjects = subjects1.intersection(subjects2)
+            if common_subjects:
+                reasons.append({
+                    'type': 'recommendations_similar_subjects',
+                    'value': ', '.join(common_subjects)
+                })
+        
+        # Language reason
+        if book1.get('language') == book2.get('language'):
+            reasons.append({
+                'type': 'recommendations_same_language',
+                'value': book1.get('language')
+            })
+        
+        # Publisher reason
+        if book1.get('publisher') == book2.get('publisher'):
+            reasons.append({
+                'type': 'recommendations_same_publisher',
+                'value': book1.get('publisher')
+            })
+        
+        return reasons
 
     @staticmethod
     def _derive_primary_secondary_for_items(items: List[Dict]) -> None:
@@ -563,5 +677,96 @@ class CoverService:
 
 
 class ExternalRatingsService:
-    """Deprecated: external ratings not used in single-page mode"""
-    pass
+    """Fetch external user ratings for books (prototype implementation).
+
+    Uses Google Books API by ISBN with a small in-memory TTL cache to avoid
+    repeated lookups. Returns a simple dict suitable for templates:
+    { 'average': float, 'count': int, 'source': str, 'url': str }
+    """
+
+    # Simple in-memory cache: { cache_key: (result_dict_or_None, expires_at_epoch) }
+    _cache: Dict[str, Tuple[Optional[Dict], float]] = {}
+    _ttl_seconds: int = 24 * 60 * 60  # 24 hours
+
+    @classmethod
+    def _get_cached(cls, key: str) -> Optional[Optional[Dict]]:
+        import time
+        entry = cls._cache.get(key)
+        if not entry:
+            return None
+        value, expires_at = entry
+        if expires_at < time.time():
+            # expired
+            cls._cache.pop(key, None)
+            return None
+        return value
+
+    @classmethod
+    def _set_cached(cls, key: str, value: Optional[Dict]) -> None:
+        import time
+        cls._cache[key] = (value, time.time() + cls._ttl_seconds)
+
+    @classmethod
+    def get_rating_for_book(cls, book: Dict) -> Optional[Dict]:
+        """Get external rating info for a book dict (expects 'isbn')."""
+        isbn = (book or {}).get('isbn')
+        if not isbn:
+            return None
+
+        cache_key = f"google:isbn:{isbn}"
+        cached = cls._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        result = cls._fetch_google_books_rating_by_isbn(isbn)
+        cls._set_cached(cache_key, result)
+        return result
+
+    @staticmethod
+    def _fetch_google_books_rating_by_isbn(isbn: str) -> Optional[Dict]:
+        """Fetch rating via Google Books volumes API using ISBN.
+
+        Returns None if not found or on error.
+        """
+        try:
+            import json
+            from urllib.parse import quote
+            from urllib.request import urlopen, Request
+
+            # Build request
+            query = f"https://www.googleapis.com/books/v1/volumes?q=isbn:{quote(isbn)}"
+            req = Request(query, headers={
+                'User-Agent': 'Scriptorium/1.0 (+https://example.local)'
+            })
+
+            with urlopen(req, timeout=3) as resp:
+                if resp.status != 200:
+                    return None
+                data = json.loads(resp.read().decode('utf-8', errors='ignore'))
+
+            items = (data or {}).get('items') or []
+            if not items:
+                return None
+            volume_info = (items[0] or {}).get('volumeInfo') or {}
+            avg = volume_info.get('averageRating')
+            cnt = volume_info.get('ratingsCount')
+            if avg is None or cnt is None:
+                return None
+            link = volume_info.get('canonicalVolumeLink') or volume_info.get('infoLink') or ''
+            try:
+                avg_float = float(avg)
+            except Exception:
+                return None
+            try:
+                cnt_int = int(cnt)
+            except Exception:
+                cnt_int = 0
+
+            return {
+                'average': avg_float,
+                'count': cnt_int,
+                'source': 'Google Books',
+                'url': link,
+            }
+        except Exception:
+            return None

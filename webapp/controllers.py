@@ -13,12 +13,12 @@ from sqlalchemy import text
 
 try:
     from .models import db, Book
-    from .services import BookService, CoverService
+    from .services import BookService, RecommendationService, CoverService, ExternalRatingsService
     from .utils import calculate_reading_time, get_genre_color, truncate_html
     from .languages import get_language, get_translation
 except ImportError:
     from models import db, Book
-    from services import BookService, CoverService
+    from services import BookService, RecommendationService, CoverService, ExternalRatingsService
     from utils import calculate_reading_time, get_genre_color, truncate_html
     from languages import get_language, get_translation
 
@@ -154,13 +154,23 @@ def register_routes(app: Flask):
     @app.route('/book/<book_id>')
     def book_detail(book_id):
         """Book detail page"""
+        # Get current language
         current_language = get_language(request)
+        
         book = BookService.get_book_by_id(book_id)
         if not book:
-            return abort(404)
-        # Keep page lightweight: omit recommendations/external ratings in single-page mode
-        recommendations = []
-        external_rating = None
+            return render_template('404.html'), 404
+        
+        # Get recommendations
+        recommendation_service = RecommendationService()
+        recommendations = recommendation_service.get_recommendations(book_id, limit=6)
+
+        # External user rating (non-blocking best-effort)
+        try:
+            external_rating = ExternalRatingsService.get_rating_for_book(book) if book else None
+        except Exception:
+            external_rating = None
+        
         return render_template('book_detail.html', 
                              book=book,
                              recommendations=recommendations,
