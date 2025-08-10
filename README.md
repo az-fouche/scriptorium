@@ -4,7 +4,7 @@ A comprehensive book library indexing and analysis system with genre detection, 
 
 **Entirely vibe-coded in a single week-end so please be indulgent with the code quality. :)**
 
--> [http://my-scriptorium.fr](My scriptorium website)
+-> (http://my-scriptorium.fr)[My scriptorium website]
 
 ## 🚀 Quick Start
 
