@@ -2,6 +2,10 @@
 
 A comprehensive book library indexing and analysis system with genre detection, topic modeling, and a modern web interface for exploring your book collection.
 
+**Entirely vibe-coded in a single week-end so please be indulgent with the code quality. :)**
+
+-> [http://my-scriptorium.fr](My scriptorium website)
+
 ## 🚀 Quick Start
 
 ### 1. Install Dependencies
