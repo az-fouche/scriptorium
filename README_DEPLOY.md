@@ -62,3 +62,69 @@ On Linux/macOS replace the bind mount path with $(pwd).
 You can use `/api/test-database` and `/api/debug-database` while `DEBUG=true`. Disable in production by keeping `FLASK_DEBUG=false`.
 
 
+
+## OVH (Ubuntu 22.04) — Quick Deploy with Docker Compose
+
+1) SSH to the server
+```
+ssh ubuntu@YOUR_SERVER_IP
+```
+
+2) Check and configure firewall (UFW)
+```
+sudo ufw status
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+sudo ufw status
+```
+Also verify OVH network-level firewall in the OVH Manager (Network → IP → Your IP → Firewall) is disabled or allows TCP 22/80/443.
+
+3) Install Docker Engine and Compose plugin
+```
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo usermod -aG docker $USER
+newgrp docker
+docker --version && docker compose version
+```
+
+4) Pull project and prepare env
+```
+git clone <your-repo-url> /opt/library-webapp
+cd /opt/library-webapp
+cp .env.example .env
+# Generate a secure key
+python3 -c "import secrets; print(secrets.token_hex(32))" | sed 's/.*/SECRET_KEY=&/' | tee -a .env
+# Optionally set external DB path when ready (absolute path on server)
+# echo DATABASE_PATH=/app/webapp/databases/books.db >> .env
+```
+
+5) First run (HTTP on port 80)
+```
+docker compose up -d --build
+docker compose logs -f
+```
+Open http://YOUR_SERVER_IP in a browser.
+
+6) Replace the database later
+- Copy your `books.db` to the host path mapped in `docker-compose.yml` (default `webapp/databases/books.db`). For example:
+```
+scp path/to/books.db ubuntu@YOUR_SERVER_IP:/opt/library-webapp/webapp/databases/books.db
+```
+- Then restart the container:
+```
+cd /opt/library-webapp && docker compose restart
+```
+
+7) Enable HTTPS later (domain ready)
+- Add a reverse proxy (Caddy or Nginx+Certbot). For Caddy (recommended, simplest auto-HTTPS): install Caddy and proxy `:443` to `web:5000` with your domain. A sample `Caddyfile` can be added on request.

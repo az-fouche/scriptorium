@@ -6,30 +6,30 @@
   },
   "navigation": {
     "nav_home": "Accueil",
-    "nav_books": "Catalogue",
+    "nav_books": "Parcourir",
     "nav_search": "Recherche",
     "nav_stats": "Statistiques",
     "nav_language": "Langue"
   },
   "home": {
     "hero_title": "Scriptorium",
-    "hero_subtitle": "Parcourez et cultivez votre canon personnel avec des recommandations avisées et une recherche d'érudit.",
+    "hero_subtitle": "Reprenez le contrôle de la Grande Poubelle Littéraire.",
     "hero_browse_books": "Parcourir le Catalogue",
     "hero_view_stats": "Voir les Analyses",
     "hero_search_books": "Rechercher par titre ou auteur...",
     "hero_random_book": "Ouvrir un Volume au Hasard"
   },
   "statistics": {
-    "stats_total_books": "Total des Volumes",
+    "stats_total_books": "Nombre de Livres",
     "stats_total_size": "Taille Totale de la Bibliothèque",
     "stats_unique_authors": "Auteurs Distincts",
     "stats_avg_words": "Nombre Moyen de Mots",
     "stats_recent_books": "Récemment rangés",
-    "stats_explore": "Suivez votre curiosité",
+    "stats_explore": "En Vrac",
     "stats_language_distribution": "Distribution des Langues",
     "stats_word_count_stats": "Aperçu du Nombre de Mots",
     "stats_file_size_stats": "Aperçu de la Taille des Fichiers",
-    "stats_top_authors": "Auteurs majeurs",
+    "stats_top_authors": "Auteurs les plus représentés",
     "stats_books": "Volumes",
     "stats_authors": "Auteurs",
     "stats_languages": "Langues",
@@ -51,7 +51,7 @@
     "stats_search_library": "Rechercher dans la Bibliothèque",
     "stats_total_books_label": "Total des Livres",
     "stats_total_size_mb": "Taille Totale (Mo)",
-    "stats_most_prolific_authors": "Auteurs les Plus Prolifiques",
+    "stats_most_prolific_authors": "Auteurs les Plus Représentés",
     "stats_rank": "Rang",
     "stats_author": "Auteur",
     "stats_books_count": "Livres",
@@ -184,7 +184,7 @@
   },
   "footer": {
     "footer_description": "Cultivez et explorez votre bibliothèque numérique, et découvrez de nouvelles œuvres.",
-    "footer_built_with": "Risitop x Cursor"
+    "footer_built_with": "Vibe-codé par @Risitop"
   },
   "theme": {
     "theme_toggle_dark": "Passer au mode sombre",

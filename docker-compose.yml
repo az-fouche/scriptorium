@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  web:
+    build: .
+    image: library-webapp:latest
+    restart: unless-stopped
+    ports:
+      - "80:5000"
+    env_file:
+      - .env
+    environment:
+      FLASK_DEBUG: "false"
+      FLASK_HOST: 0.0.0.0
+      FLASK_PORT: "5000"
+      # Fallback to bundled DB if not provided
+      DATABASE_PATH: ${DATABASE_PATH:-/app/webapp/databases/books.db}
+    volumes:
+      # Allow replacing the DB file later without rebuilding the image
+      - ./webapp/databases:/app/webapp/databases
+    command: ["gunicorn", "webapp.wsgi:application", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4", "--timeout", "120"]
+

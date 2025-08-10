@@ -9,6 +9,7 @@ This version uses a modular architecture with clear separation of concerns.
 import os
 import sys
 from flask import Flask
+import shutil
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -32,6 +33,21 @@ def create_app(config_name='default'):
     
     # Load configuration
     app.config.from_object(config[config_name])
+
+    # Ensure key static assets exist (favicon)
+    try:
+        static_dir = os.path.join(app.root_path, 'static')
+        os.makedirs(static_dir, exist_ok=True)
+        static_icon = os.path.join(static_dir, 'icon.png')
+        # Prefer existing static icon; otherwise copy from project img/
+        if not os.path.exists(static_icon):
+            project_img_dir = os.path.normpath(os.path.join(app.root_path, '..', 'img'))
+            source_icon = os.path.join(project_img_dir, 'icon.png')
+            if os.path.exists(source_icon):
+                shutil.copyfile(source_icon, static_icon)
+    except Exception:
+        # Non-fatal if copying fails
+        pass
     
     # Configure Flask-Session
     app.config['SESSION_TYPE'] = 'filesystem'
