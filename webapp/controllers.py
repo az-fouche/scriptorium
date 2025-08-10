@@ -13,16 +13,14 @@ from sqlalchemy import text
 
 try:
     from .models import db, Book
-    from .services import BookService, StatisticsService, RecommendationService, CoverService, ExternalRatingsService
+    from .services import BookService, CoverService
     from .utils import calculate_reading_time, get_genre_color, truncate_html
     from .languages import get_language, get_translation
-    from .resource_manager import reload_language as reload_i18n_language
 except ImportError:
     from models import db, Book
-    from services import BookService, StatisticsService, RecommendationService, CoverService, ExternalRatingsService
+    from services import BookService, CoverService
     from utils import calculate_reading_time, get_genre_color, truncate_html
     from languages import get_language, get_translation
-    from resource_manager import reload_language as reload_i18n_language
 
 
     
@@ -33,27 +31,9 @@ def register_routes(app: Flask):
     
     @app.route('/')
     def index():
-        """Home page"""
-        # Get current language
-        language = get_language(request)
-        # Ensure freshest translations from JSON (avoid stale cache)
-        try:
-            reload_i18n_language(language)
-        except Exception:
-            pass
-        
-        # Get basic statistics
-        stats = StatisticsService.get_basic_stats()
-        
-        # Get 4 random books for Explore section
-        explore_books = BookService.get_random_books(limit=4)
-        
-        return render_template('index.html', 
-                             total_books=stats['total_books'],
-                             explore_books=explore_books,
-                             total_size_mb=stats['total_size_mb'],
-                             unique_authors=stats['unique_authors'],
-                             current_language=language)
+        """Home page now serves the catalog directly"""
+        # Delegate to the books catalog handler to preserve all filtering features
+        return books()
     
     @app.route('/random')
     def random_book():
@@ -61,10 +41,8 @@ def register_routes(app: Flask):
         # Get current language for consistency
         current_language = get_language(request)
         book = BookService.get_random_book()
-        if not book:
-            # If no book, send back to home
-            return redirect(url_for('index'))
-        return redirect(url_for('book_detail', book_id=book['id']))
+        # Always redirect to home (catalog) in single-page mode
+        return redirect(url_for('index'))
 
     
     
@@ -176,23 +154,13 @@ def register_routes(app: Flask):
     @app.route('/book/<book_id>')
     def book_detail(book_id):
         """Book detail page"""
-        # Get current language
         current_language = get_language(request)
-        
         book = BookService.get_book_by_id(book_id)
         if not book:
-            return render_template('404.html'), 404
-        
-        # Get recommendations
-        recommendation_service = RecommendationService()
-        recommendations = recommendation_service.get_recommendations(book_id, limit=6)
-
-        # External user rating (non-blocking best-effort)
-        try:
-            external_rating = ExternalRatingsService.get_rating_for_book(book) if book else None
-        except Exception:
-            external_rating = None
-        
+            return abort(404)
+        # Keep page lightweight: omit recommendations/external ratings in single-page mode
+        recommendations = []
+        external_rating = None
         return render_template('book_detail.html', 
                              book=book,
                              recommendations=recommendations,
@@ -230,92 +198,13 @@ def register_routes(app: Flask):
             'current_page': page
         })
 
-    @app.route('/api/random_books')
-    def api_random_books():
-        """API endpoint to fetch random books, excluding a set of IDs"""
-        limit = request.args.get('limit', 4, type=int)
-        exclude = request.args.get('exclude', '', type=str)
-        exclude_ids = [bid for bid in exclude.split(',') if bid]
-
-        books = BookService.get_random_books(limit=limit, exclude_ids=exclude_ids)
-        return jsonify(books)
+    # Removed /api/random_books; random explore has been removed with the old home page
     
-    @app.route('/api/book/<book_id>/recommendations')
-    def api_recommendations(book_id):
-        """API endpoint for book recommendations"""
-        recommendation_service = RecommendationService()
-        recommendations = recommendation_service.get_recommendations(book_id, limit=10)
-        return jsonify(recommendations)
+    # Removed recommendations API
     
-    @app.route('/stats')
-    def stats():
-        """Statistics page"""
-        # Get current language
-        current_language = get_language(request)
-        
-        # Basic stats
-        basic_stats = StatisticsService.get_basic_stats()
-        # File size stats (used by overview card at the top)
-        size_stats = StatisticsService.get_size_stats()
-        
-        # Top authors (initial slice)
-        top_authors = StatisticsService.get_top_authors(20)
-
-        return render_template('stats.html',
-                             total_books=basic_stats['total_books'],
-                             size_stats=size_stats,
-                             top_authors=top_authors,
-                             current_language=current_language)
-
-    @app.route('/api/top-authors')
-    def api_top_authors():
-        """Paginated API for top authors for infinite scrolling on stats page."""
-        try:
-            offset = request.args.get('offset', 0, type=int)
-            limit = request.args.get('limit', 20, type=int)
-        except Exception:
-            offset, limit = 0, 20
-        items, total = StatisticsService.get_top_authors_paginated(offset=offset, limit=limit)
-        return jsonify({
-            'items': items,
-            'total': total,
-            'offset': offset,
-            'limit': limit
-        })
+    # Stats page and related APIs have been removed as the app is now a single-page catalog
     
-    @app.route('/api/debug-database')
-    def api_debug_database():
-        """Debug database connection and content"""
-        if not current_app.config.get('DEBUG', False):
-            return abort(404)
-        try:
-            # Direct SQL query
-            result = db.session.execute(text("SELECT COUNT(*) as count FROM books")).fetchone()
-            sql_count = result.count if result else 0
-            
-            # SQLAlchemy query
-            orm_count = BookService.get_total_books()
-            
-            # Check database file
-            db_path = current_app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')
-            file_exists = os.path.exists(db_path)
-            file_size = os.path.getsize(db_path) if file_exists else 0
-            file_mtime = os.path.getmtime(db_path) if file_exists else 0
-            
-            return jsonify({
-                'sql_count': sql_count,
-                'orm_count': orm_count,
-                'file_exists': file_exists,
-                'file_size': file_size,
-                'file_mtime': file_mtime,
-                'db_uri': current_app.config['SQLALCHEMY_DATABASE_URI'],
-                'timestamp': datetime.now().isoformat()
-            })
-        except Exception as e:
-            return jsonify({
-                'error': str(e),
-                'timestamp': datetime.now().isoformat()
-            }), 500
+    # Removed debug database endpoints for cleanup
     
     @app.route('/api/reload-database')
     def api_reload_database():
@@ -453,8 +342,8 @@ def register_routes(app: Flask):
         """Deprecated: redirect to books with query mapped to 'search' filter"""
         query = request.args.get('q', '').strip()
         if query:
-            return redirect(url_for('books', search=query))
-        return redirect(url_for('books'))
+            return redirect(url_for('index', search=query))
+        return redirect(url_for('index'))
     
     @app.route('/language/<language_code>')
     def set_language(language_code):
@@ -473,35 +362,9 @@ def register_routes(app: Flask):
         response.set_cookie('language', lang, max_age=60*60*24*365)
         return response
 
-    @app.route('/debug-autocomplete')
-    def debug_autocomplete():
-        """Debug page for autocomplete functionality"""
-        if not current_app.config.get('DEBUG', False):
-            return abort(404)
-        # Get current language
-        current_language = get_language(request)
-        
-        return render_template('debug_autocomplete.html', current_language=current_language)
+    # Removed debug-autocomplete page in single-page mode
     
-    @app.route('/api/test-database')
-    def api_test_database():
-        """Test endpoint to check database content"""
-        if not current_app.config.get('DEBUG', False):
-            return abort(404)
-        try:
-            total_books = BookService.get_total_books()
-            sample_books = BookService.get_recent_books(5)
-            
-            return jsonify({
-                'total_books': total_books,
-                'sample_books': sample_books,
-                'database_working': True
-            })
-        except Exception as e:
-            return jsonify({
-                'error': str(e),
-                'database_working': False
-            })
+    # Removed test database endpoint
     
     @app.route('/favicon.ico')
     def favicon():

@@ -41,6 +41,15 @@ class BookDatabase:
             # operations with a lock to avoid concurrent write issues.
             self.connection = sqlite3.connect(str(self.db_path), check_same_thread=False)
             self.connection.row_factory = sqlite3.Row
+            try:
+                # Improve concurrency characteristics for multi-threaded writers
+                cur = self.connection.cursor()
+                cur.execute('PRAGMA journal_mode=WAL')
+                cur.execute('PRAGMA synchronous=NORMAL')
+                cur.execute('PRAGMA busy_timeout=5000')
+                self.connection.commit()
+            except Exception as e:
+                logger.warning(f"Could not set SQLite PRAGMAs: {e}")
             
             # Create tables
             self._create_tables()
@@ -157,89 +166,104 @@ class BookDatabase:
     
     def add_book(self, book_data: Dict) -> bool:
         """Add a book to the database"""
-        try:
-            with self._lock:
-                cursor = self.connection.cursor()
-            
-            # Prepare data
-            book_id = book_data.get('id', book_data.get('title', ''))
-            
-            # Convert lists to JSON strings
-            authors = json.dumps(book_data.get('authors', []))
-            subjects = json.dumps(book_data.get('subjects', []))
-            secondary_genres = json.dumps(book_data.get('secondary_genres', []))
-            secondary_confidences = json.dumps(book_data.get('secondary_confidences', []))
-            tag_scores = json.dumps(book_data.get('tag_scores', []))
-            topics = json.dumps(book_data.get('topics', []))
-            keywords = json.dumps(book_data.get('keywords', []))
-            
-            cursor.execute('''
-                INSERT OR REPLACE INTO books (
-                    id, title, authors, language, publisher, publication_date,
-                    isbn, description, subjects, rights, identifier, file_path,
-                    file_size, word_count, character_count, paragraph_count,
-                    sentence_count, average_sentence_length, average_word_length,
-                    primary_genre, primary_confidence, secondary_genres,
-                    secondary_confidences, tag_scores, complexity_level, reading_level,
-                    topics, keywords, cover_data, cover_mime_type, cover_file_name, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                book_id,
-                book_data.get('title', ''),
-                authors,
-                book_data.get('language', ''),
-                book_data.get('publisher', ''),
-                book_data.get('publication_date', ''),
-                book_data.get('isbn', ''),
-                book_data.get('description', ''),
-                subjects,
-                book_data.get('rights', ''),
-                book_data.get('identifier', ''),
-                book_data.get('file_path', ''),
-                book_data.get('file_size', 0),
-                book_data.get('word_count', 0),
-                book_data.get('character_count', 0),
-                book_data.get('paragraph_count', 0),
-                book_data.get('sentence_count', 0),
-                book_data.get('average_sentence_length', 0.0),
-                book_data.get('average_word_length', 0.0),
-                book_data.get('primary_genre', ''),
-                book_data.get('primary_confidence', 0.0),
-                secondary_genres,
-                secondary_confidences,
-                tag_scores,
-                book_data.get('complexity_level', ''),
-                book_data.get('reading_level', ''),
-                topics,
-                keywords,
-                book_data.get('cover_data'),
-                book_data.get('cover_mime_type'),
-                book_data.get('cover_file_name'),
-                datetime.now().isoformat()
-            ))
-            
-            # Add chapters if available
-            chapters = book_data.get('chapters', [])
-            for chapter in chapters:
-                cursor.execute('''
-                    INSERT OR REPLACE INTO chapters (
-                        book_id, chapter_id, title, content, word_count
-                    ) VALUES (?, ?, ?, ?, ?)
-                ''', (
-                    book_id,
-                    chapter.get('id', ''),
-                    chapter.get('title', ''),
-                    chapter.get('content', ''),
-                    chapter.get('word_count', 0)
-                ))
-            
-            self.connection.commit()
-            logger.info(f"Added book to database: {book_data.get('title', 'Unknown')}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error adding book to database: {e}")
-            return False
+        import time
+        import sqlite3 as _sqlite3
+        max_attempts = 5
+        attempt = 0
+        last_error = None
+        while attempt < max_attempts:
+            attempt += 1
+            try:
+                # Prepare data (outside lock is fine)
+                book_id = book_data.get('id', book_data.get('title', ''))
+                authors = json.dumps(book_data.get('authors', []))
+                subjects = json.dumps(book_data.get('subjects', []))
+                secondary_genres = json.dumps(book_data.get('secondary_genres', []))
+                secondary_confidences = json.dumps(book_data.get('secondary_confidences', []))
+                tag_scores = json.dumps(book_data.get('tag_scores', []))
+                topics = json.dumps(book_data.get('topics', []))
+                keywords = json.dumps(book_data.get('keywords', []))
+
+                with self._lock:
+                    cursor = self.connection.cursor()
+                    cursor.execute('''
+                        INSERT OR REPLACE INTO books (
+                            id, title, authors, language, publisher, publication_date,
+                            isbn, description, subjects, rights, identifier, file_path,
+                            file_size, word_count, character_count, paragraph_count,
+                            sentence_count, average_sentence_length, average_word_length,
+                            primary_genre, primary_confidence, secondary_genres,
+                            secondary_confidences, tag_scores, complexity_level, reading_level,
+                            topics, keywords, cover_data, cover_mime_type, cover_file_name, updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        book_id,
+                        book_data.get('title', ''),
+                        authors,
+                        book_data.get('language', ''),
+                        book_data.get('publisher', ''),
+                        book_data.get('publication_date', ''),
+                        book_data.get('isbn', ''),
+                        book_data.get('description', ''),
+                        subjects,
+                        book_data.get('rights', ''),
+                        book_data.get('identifier', ''),
+                        book_data.get('file_path', ''),
+                        book_data.get('file_size', 0),
+                        book_data.get('word_count', 0),
+                        book_data.get('character_count', 0),
+                        book_data.get('paragraph_count', 0),
+                        book_data.get('sentence_count', 0),
+                        book_data.get('average_sentence_length', 0.0),
+                        book_data.get('average_word_length', 0.0),
+                        book_data.get('primary_genre', ''),
+                        book_data.get('primary_confidence', 0.0),
+                        secondary_genres,
+                        secondary_confidences,
+                        tag_scores,
+                        book_data.get('complexity_level', ''),
+                        book_data.get('reading_level', ''),
+                        topics,
+                        keywords,
+                        book_data.get('cover_data'),
+                        book_data.get('cover_mime_type'),
+                        book_data.get('cover_file_name'),
+                        datetime.now().isoformat()
+                    ))
+
+                    # Add chapters if available
+                    chapters = book_data.get('chapters', [])
+                    for chapter in chapters:
+                        cursor.execute('''
+                            INSERT OR REPLACE INTO chapters (
+                                book_id, chapter_id, title, content, word_count
+                            ) VALUES (?, ?, ?, ?, ?)
+                        ''', (
+                            book_id,
+                            chapter.get('id', ''),
+                            chapter.get('title', ''),
+                            chapter.get('content', ''),
+                            chapter.get('word_count', 0)
+                        ))
+
+                    self.connection.commit()
+                logger.info(f"Added book to database: {book_data.get('title', 'Unknown')}")
+                return True
+            except _sqlite3.OperationalError as e:
+                last_error = e
+                msg = str(e).lower()
+                if 'locked' in msg or 'database is locked' in msg or 'busy' in msg:
+                    # Backoff and retry
+                    time.sleep(0.2 * attempt)
+                    continue
+                else:
+                    logger.error(f"Error adding book to database (attempt {attempt}): {e}")
+                    return False
+            except Exception as e:
+                logger.error(f"Error adding book to database (attempt {attempt}): {e}")
+                return False
+        logger.error(f"Error adding book to database after retries: {last_error}")
+        return False
     
     def get_book(self, book_id: str) -> Optional[Dict]:
         """Get a book from the database"""

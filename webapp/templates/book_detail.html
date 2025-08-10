@@ -2,194 +2,45 @@
 
 {% block title %}{{ book.title }} - {{ 'home.hero_title' | translate(current_language or 'en') }}{% endblock %}
 
-{% block extra_css %}
-<style>
-/* Scoped styles for book detail cover */
-.book-detail-cover {
-    width: 100%;
-    max-width: 100%;
-    aspect-ratio: 2 / 3;
-    background: linear-gradient(135deg, var(--dark-primary) 0%, var(--dark-secondary) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    border-radius: 10px;
-}
-body.light-mode .book-detail-cover {
-    background: linear-gradient(135deg, var(--light-primary) 0%, var(--light-secondary) 100%);
-}
-.book-detail-cover img.cover-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-@media (max-width: 576px) {
-    .book-detail-cover { aspect-ratio: 3 / 4; }
-}
-</style>
-{% endblock %}
-
 {% block content %}
-
 <div class="row">
-    <!-- Book Details -->
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="book-detail-cover mb-3">
-                            {% if book.cover_data %}
-                                <img src="{{ url_for('book_cover', book_id=book.id) }}" 
-                                     alt="Cover of {{ book.title }}" 
-                                     class="cover-img">
-                            {% else %}
-                                <div class="text-center p-3">
-                                    <i class="fas fa-book fa-3x mb-3"></i>
-                                    <br>
-                                    {{ book.title[:30] }}{% if book.title|length > 30 %}...{% endif %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="col-md-8">
-                        <h2 class="card-title">{{ book.title }}</h2>
-                        
-                        {% if book.authors %}
-                        <p class="text-muted">
-                            <i class="fas fa-user me-2"></i>
-                            {{ book.authors|join(', ') }}
-                        </p>
-                        {% endif %}
-                        
-                        <div class="row mb-3">
-                            <div class="col-6">
-                                <span class="badge bg-primary me-2">{{ book.language or ('common.unknown' | translate(current_language or 'en') | title) }}</span>
-                                {% if book.publisher %}
-                                <span class="badge bg-secondary">{{ book.publisher }}</span>
-                                {% endif %}
-                            </div>
-                            <div class="col-6 text-end">
-                                {% if book.word_count %}
-                                <small class="text-muted">
-                                    <i class="fas fa-clock me-1"></i>
-                                    {{ book.word_count|reading_time|format_reading_time(current_language or 'en') }}
-                                </small>
-                                {% endif %}
-                                {% if book.publication_date %}
-                                <br><small class="text-muted">{{ book.publication_date|format_date(current_language or 'en') }}</small>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        {% if external_rating %}
-                        <div class="mb-3">
-                            <h6>{{ 'book_details.book_user_rating' | translate(current_language or 'en') }}</h6>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="fw-semibold">{{ '%.1f'|format(external_rating.average) }}/5</span>
-                                <small class="text-muted">{{ 'book_details.book_rating_count' | translate(current_language or 'en', count=external_rating.count) }}</small>
-                                {% if external_rating.url %}
-                                <a class="small" href="{{ external_rating.url }}" target="_blank" rel="noopener noreferrer">{{ external_rating.source }}</a>
-                                {% else %}
-                                <span class="small text-muted">{{ external_rating.source }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        {% if book.description %}
-                        <div class="mb-3">
-                            <h6>{{ 'book_details.book_description' | translate(current_language or 'en') }}</h6>
-                            <div class="description-text" style="white-space: pre-line;">{{ book.description | striptags }}</div>
-                        </div>
-                        {% endif %}
-                        
-                        {% set primary_tag = book.primary_tag %}
-                        {% set secondary_tags = book.secondary_tags %}
-                        {% if primary_tag or secondary_tags %}
-                        <div class="mb-3">
-                            <h6>{{ 'book_details.book_themes' | translate(current_language or 'en') }}</h6>
-                            {% if primary_tag %}
-                              <span class="badge {{ primary_tag|primary_tag_color }} me-1">{{ primary_tag|tag_label(current_language or 'en') }}</span>
-                            {% endif %}
-                            {% if secondary_tags %}
-                              {% for t in secondary_tags[:3] %}
-                                <span class="badge bg-secondary text-dark me-1">{{ t|tag_label(current_language or 'en') }}</span>
-                              {% endfor %}
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                        
-                        {% if book.subjects %}
-                        <div class="mb-3">
-                            <h6>{{ 'book_details.book_subjects' | translate(current_language or 'en') }}</h6>
-                            {% for subject in book.subjects %}
-                            <span class="badge bg-info me-1">{{ subject }}</span>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        
-                        {% if book.isbn %}
-                        <div class="mb-3">
-                            <h6>{{ 'book_details.book_isbn' | translate(current_language or 'en') }}</h6>
-                            <code>{{ book.isbn }}</code>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="book-detail-cover mb-3">
+              <img src="{{ url_for('book_cover', book_id=book.id) }}" alt="Cover of {{ book.title }}" class="cover-img">
             </div>
+          </div>
+          <div class="col-md-8">
+            <h2 class="card-title">{{ book.title }}</h2>
+            {% if book.authors %}
+            <p class="text-muted"><i class="fas fa-user me-2"></i>{{ book.authors|join(', ') }}</p>
+            {% endif %}
+            <div class="mb-3">
+              {% if book.primary_tag %}
+                <span class="badge {{ book.primary_tag|primary_tag_color }} me-1">{{ book.primary_tag|tag_label(current_language or 'en') }}</span>
+              {% endif %}
+              {% if book.secondary_tags %}
+                {% for t in book.secondary_tags[:3] %}
+                  <span class="badge bg-secondary text-dark me-1">{{ t|tag_label(current_language or 'en') }}</span>
+                {% endfor %}
+              {% endif %}
+            </div>
+            {% if book.description %}
+            <div class="mb-3">
+              <h6>{{ 'book_details.book_description' | translate(current_language or 'en') }}</h6>
+              <div class="description-text" style="white-space: pre-line;">{{ book.description | striptags }}</div>
+            </div>
+            {% endif %}
+          </div>
         </div>
-        
-        <!-- Removed statistics and file information sections per cleanup -->
+      </div>
     </div>
-    
-    <!-- Recommendations Sidebar -->
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-lightbulb me-2"></i>{{ 'book_details.book_recommendations' | translate(current_language or 'en') }}
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if recommendations %}
-                <div class="row">
-                    {% for rec in recommendations[:4] %}
-                    {% set rec_book = rec.book %}
-                    <div class="col-6 mb-3">
-                        <div class="explore-card animate-on-scroll" style="--cover-image: url('{{ url_for('book_cover', book_id=rec_book.id) }}');">
-                            <a href="{{ url_for('book_detail', book_id=rec_book.id) }}" class="explore-card-link" aria-label="{{ 'common.view' | translate(current_language or 'en') }} {{ rec_book.title }}">
-                                <img src="{{ url_for('book_cover', book_id=rec_book.id) }}" 
-                                     alt="Cover of {{ rec_book.title }}" 
-                                     class="explore-card-img">
-                                <div class="explore-card-overlay">
-                                    <div class="explore-card-overlay-content">
-                                        <h6 class="explore-card-title" title="{{ rec_book.title }}">{{ rec_book.title }}</h6>
-                                        <p class="explore-card-author" title="{% if rec_book.authors %}{{ rec_book.authors|join(', ') }}{% else %}{{ 'common.unknown' | translate(current_language or 'en') | title }} {{ 'book_details.book_author' | translate(current_language or 'en') }}{% endif %}">
-                                            {% if rec_book.authors %}
-                                                {{ rec_book.authors|join(', ') }}
-                                            {% else %}
-                                                {{ 'common.unknown' | translate(current_language or 'en') | title }} {{ 'book_details.book_author' | translate(current_language or 'en') }}
-                                            {% endif %}
-                                        </p>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center text-muted">
-                    <i class="fas fa-info-circle fa-2x mb-3"></i>
-                    <p>{{ 'book_details.book_no_recommendations' | translate(current_language or 'en') }}</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        
-    </div>
+  </div>
 </div>
 {% endblock %}
+
+
+

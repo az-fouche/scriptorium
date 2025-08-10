@@ -69,8 +69,19 @@ class EpubParser:
     
     def parse_metadata(self, book: epub.EpubBook) -> BookMetadata:
         """Extract metadata from EPUB book"""
+        def _as_str(value) -> str:
+            if value is None:
+                return ""
+            if isinstance(value, bytes):
+                try:
+                    return value.decode('utf-8', errors='ignore')
+                except Exception:
+                    return str(value)
+            return str(value)
+
         metadata = book.get_metadata('DC', 'title')
-        title = metadata[0][0] if metadata else "Unknown Title"
+        title_raw = metadata[0][0] if metadata and len(metadata[0]) > 0 else ""
+        title = _as_str(title_raw) or "Unknown Title"
         
         # Clean up title - remove leading dashes and extra whitespace
         if title.startswith('-'):
@@ -81,53 +92,68 @@ class EpubParser:
         title = title.replace('  ', ' ')  # Remove double spaces
         title = title.strip()
         
-        authors = []
+        authors: List[str] = []
         author_metadata = book.get_metadata('DC', 'creator')
         if author_metadata:
-            authors = [author[0] for author in author_metadata]
+            for author in author_metadata:
+                if not author:
+                    continue
+                authors.append(_as_str(author[0]))
+        authors = [a for a in authors if a]
         
         language = ""
         lang_metadata = book.get_metadata('DC', 'language')
         if lang_metadata:
-            language = lang_metadata[0][0]
+            language = _as_str(lang_metadata[0][0])
         
         publisher = ""
         pub_metadata = book.get_metadata('DC', 'publisher')
         if pub_metadata:
-            publisher = pub_metadata[0][0]
+            publisher = _as_str(pub_metadata[0][0])
         
         publication_date = ""
         date_metadata = book.get_metadata('DC', 'date')
         if date_metadata:
-            publication_date = date_metadata[0][0]
+            publication_date = _as_str(date_metadata[0][0])
         
         isbn = ""
         isbn_metadata = book.get_metadata('DC', 'identifier')
         if isbn_metadata:
             for identifier in isbn_metadata:
-                if 'isbn' in identifier[0].lower() or len(identifier[0]) in [10, 13]:
-                    isbn = identifier[0]
-                    break
+                try:
+                    value = _as_str(identifier[0]) if identifier else ""
+                    if not value:
+                        continue
+                    value_lower = value.lower()
+                    if ('isbn' in value_lower) or (len(value) in [10, 13]):
+                        isbn = value
+                        break
+                except Exception:
+                    continue
         
         description = ""
         desc_metadata = book.get_metadata('DC', 'description')
         if desc_metadata:
-            description = desc_metadata[0][0]
+            description = _as_str(desc_metadata[0][0])
         
-        subjects = []
+        subjects: List[str] = []
         subject_metadata = book.get_metadata('DC', 'subject')
         if subject_metadata:
-            subjects = [subject[0] for subject in subject_metadata]
+            for subject in subject_metadata:
+                if not subject:
+                    continue
+                subjects.append(_as_str(subject[0]))
+        subjects = [s for s in subjects if s]
         
         rights = ""
         rights_metadata = book.get_metadata('DC', 'rights')
         if rights_metadata:
-            rights = rights_metadata[0][0]
+            rights = _as_str(rights_metadata[0][0])
         
         identifier = ""
         id_metadata = book.get_metadata('DC', 'identifier')
         if id_metadata:
-            identifier = id_metadata[0][0]
+            identifier = _as_str(id_metadata[0][0])
         
         return BookMetadata(
             title=title,
@@ -170,8 +196,27 @@ class EpubParser:
         # Process all items in the book
         for item in book.get_items():
             if item.get_type() == ebooklib.ITEM_DOCUMENT:
-                html_content = item.get_content().decode('utf-8')
+                try:
+                    content_obj = item.get_content()
+                except Exception as e:
+                    logger.warning(f"Skipping unreadable document item '{item.get_name()}': {e}")
+                    continue
+
+                html_content: Optional[str]
+                if isinstance(content_obj, bytes):
+                    try:
+                        html_content = content_obj.decode('utf-8', errors='ignore')
+                    except Exception as e:
+                        logger.warning(f"Skipping undecodable document item '{item.get_name()}': {e}")
+                        continue
+                elif isinstance(content_obj, str):
+                    html_content = content_obj
+                else:
+                    logger.warning(f"Skipping unknown content type for '{item.get_name()}' ({type(content_obj)})")
+                    continue
+
                 text = self.extract_text_from_html(html_content)
+                logger.debug(f"Extracted text from item '{item.get_name()}' (chars={len(text)})")
                 
                 if text.strip():
                     full_text += text + "\n\n"
@@ -198,7 +243,7 @@ class EpubParser:
         average_sentence_length = word_count / sentence_count if sentence_count > 0 else 0
         average_word_length = sum(len(word) for word in words) / word_count if word_count > 0 else 0
         
-        return BookContent(
+        book_content = BookContent(
             full_text=full_text,
             chapters=chapters,
             word_count=word_count,
@@ -208,6 +253,8 @@ class EpubParser:
             average_sentence_length=average_sentence_length,
             average_word_length=average_word_length
         )
+        logger.debug(f"Content summary: words={word_count}, sentences={sentence_count}, paragraphs={paragraph_count}, chapters={len(chapters)}")
+        return book_content
     
     def extract_cover_image(self, book: epub.EpubBook) -> Optional[BookCover]:
         """Extract cover image from EPUB book"""
@@ -286,16 +333,46 @@ class EpubParser:
         try:
             book = epub.read_epub(file_path)
             
+            logger.debug(f"parse_book begin: {file_path}")
             metadata = self.parse_metadata(book)
+            logger.debug(f"Parsed metadata: title='{metadata.title}', authors={len(metadata.authors)}")
             content = self.parse_content(book)
+            logger.debug(f"Parsed content: words={content.word_count}, chapters={len(content.chapters)}")
             cover = self.extract_cover_image(book)
+            logger.debug(f"Parsed cover: present={bool(cover)}")
             
             logger.info(f"Successfully parsed: {metadata.title}")
             return metadata, content, cover
             
         except Exception as e:
+            # Gracefully degrade on EPUB loading issues (e.g., missing members in archive)
             logger.error(f"Error parsing {file_path}: {str(e)}")
-            raise
+            # Return empty content so the caller can decide to skip without crashing
+            safe_title = Path(file_path).stem
+            empty_metadata = BookMetadata(
+                title=safe_title,
+                authors=[],
+                language="",
+                publisher="",
+                publication_date="",
+                isbn="",
+                description="",
+                subjects=[],
+                rights="",
+                identifier="",
+            )
+            empty_content = BookContent(
+                full_text="",
+                chapters=[],
+                word_count=0,
+                character_count=0,
+                paragraph_count=0,
+                sentence_count=0,
+                average_sentence_length=0.0,
+                average_word_length=0.0,
+            )
+            logger.debug(f"parse_book fallback (empty) for: {file_path}")
+            return empty_metadata, empty_content, None
     
     def get_book_info(self, file_path: str) -> Dict:
         """Get basic book information without full text extraction"""

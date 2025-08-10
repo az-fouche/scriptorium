@@ -1957,22 +1957,10 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav" style="overflow: visible;">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('books') }}">
-                            <i class="fas fa-book me-1"></i>{{ 'navigation.nav_books' | translate(current_language or 'en') }}
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('stats') }}">
-                            <i class="fas fa-chart-bar me-1"></i>{{ 'navigation.nav_stats' | translate(current_language or 'en') }}
-                        </a>
-                    </li>
-                </ul>
+                <ul class="navbar-nav me-auto"></ul>
                 
                 <!-- Search form -->
-                <form class="d-flex search-box me-3 position-relative" action="{{ url_for('books') }}" method="get" onsubmit="return false;">
+                <form class="d-flex search-box me-3 position-relative" action="{{ url_for('index') }}" method="get" onsubmit="return false;">
                     <input class="form-control flex-grow-1" type="search" name="search" 
                            placeholder="{{ 'books.books_search_placeholder' | translate(current_language or 'en') }}" 
                            value="{{ request.args.get('search', '') }}" id="navbarSearchInput" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
@@ -2094,13 +2082,13 @@
             animatedElements.forEach(el => observer.observe(el));
         });
 
-        // Add staggered animation delay for stats cards
-        document.addEventListener('DOMContentLoaded', () => {
-            const statsCards = document.querySelectorAll('.stats-card');
-            statsCards.forEach((card, index) => {
-                card.style.animationDelay = `${index * 0.1}s`;
+            // Staggered animation utility (no-op if elements absent)
+            document.addEventListener('DOMContentLoaded', () => {
+                const cards = document.querySelectorAll('.stats-card');
+                cards.forEach((card, index) => {
+                    card.style.animationDelay = `${index * 0.1}s`;
+                });
             });
-        });
 
         // Navbar autocomplete functionality
         document.addEventListener('DOMContentLoaded', function() {
@@ -2111,7 +2099,7 @@
             let navbarCurrentSuggestions = [];
             let navbarSelectedIndex = -1;
             let navbarDebounceTimer;
-            const booksRouteUrl = "{{ url_for('books') }}";
+            const booksRouteUrl = "{{ url_for('index') }}";
 
             if (!navbarSearchInput) return;
             const cache = new Map(); // query -> suggestions
@@ -2203,12 +2191,7 @@
                     hideNavbarAutocomplete();
                     return;
                 }
-                // Direct book navigation if we have a concrete book id
-                if (suggestion.type === 'title' && suggestion.id) {
-                    window.location.href = `/book/${encodeURIComponent(suggestion.id)}`;
-                    return;
-                }
-                // Otherwise, fall back to catalogue search
+                // Single-page app: always navigate to catalog with the query
                 const url = `${booksRouteUrl}?search=${encodeURIComponent(suggestion.text)}`;
                 window.location.href = url;
             }

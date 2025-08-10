@@ -239,7 +239,7 @@
                 <i class="fas fa-search fa-3x text-muted mb-3"></i>
                 <h5 class="quick-actions-title">{{ 'books.books_no_results' | translate(current_language or 'en') }}</h5>
                 <p class="text-muted">{{ 'search.search_try_different' | translate(current_language or 'en') }}</p>
-                <a href="{{ url_for('books') }}" class="hero-btn hero-btn-primary">
+                <a href="{{ url_for('index') }}" class="hero-btn hero-btn-primary">
                     <i class="fas fa-undo"></i>
                     {{ 'books.books_clear_filters' | translate(current_language or 'en') }}
                 </a>
@@ -371,8 +371,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (topics.length) params.set('topic', topics.join(','));
         params.set('page', '1');
 
-        // Fetch data from API
-        const url = `${window.location.origin}${window.location.pathname.replace(/\/books$/, '/api/books') || '/api/books'}?${params.toString()}`;
+        // Fetch data from API (always use API endpoint)
+        const url = `${window.location.origin}/api/books?${params.toString()}`;
         try {
             const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
             if (!resp.ok) throw new Error('Network response was not ok');
@@ -753,12 +753,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Reset and fetch on filter/search changes
+    // Reset and fetch on filter/search changes (single, correct implementation)
     async function submitForm() {
-        // Reset to first page on any change
         if (pageHidden) pageHidden.value = '1';
-
-        // Build query params
         const params = new URLSearchParams();
         const q = (searchInput?.value || '').trim();
         if (q) params.set('search', q);
@@ -767,9 +764,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (genres.length) params.set('genre', genres.join(','));
         if (topics.length) params.set('topic', topics.join(','));
         params.set('page', '1');
-
-        // Fetch data from API
-        const url = `${window.location.origin}${window.location.pathname.replace(/\/books$/, '/api/books') || '/api/books'}?${params.toString()}`;
+        const url = `${window.location.origin}/api/books?${params.toString()}`;
         try {
             const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
             if (!resp.ok) throw new Error('Network response was not ok');
@@ -779,10 +774,8 @@ document.addEventListener('DOMContentLoaded', function () {
             renderBooks(data);
             updateTotal(data.total);
             updateHistory(params);
-            // Reset infinite spinner visibility
             if (infiniteSpinner) {
                 const { currentPage, totalPages } = window.catalogState;
-                // Keep spinner visible to allow observer to trigger next loads
                 infiniteSpinner.style.display = (currentPage < totalPages) ? 'block' : 'none';
             }
         } catch (e) {

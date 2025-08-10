@@ -10,6 +10,7 @@ It builds a searchable database for interactive exploration.
 import os
 import sys
 import logging
+from logging.handlers import RotatingFileHandler
 import time
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
@@ -44,12 +45,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Add a dedicated DEBUG rotating file log without changing console verbosity
+try:
+    debug_handler = RotatingFileHandler('logs/indexing_debug.log', maxBytes=10 * 1024 * 1024, backupCount=3, encoding='utf-8')
+    debug_handler.setLevel(logging.DEBUG)
+    debug_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(debug_handler)
+except Exception:
+    # Non-fatal: continue without debug file if filesystem not available
+    pass
+
 # Quiet noisy sub-loggers on stdout while keeping file logs
 for noisy_logger in [
     'database',
     'text_analyzer',
     'topic_modeler',
-    'epub_parser',
     'httpx',
     'urllib3',
 ]:
@@ -57,6 +67,15 @@ for noisy_logger in [
         logging.getLogger(noisy_logger).setLevel(logging.WARNING)
     except Exception:
         pass
+
+# Enable debug capture to file while keeping console clean
+try:
+    # Root at DEBUG so debug handler receives records; handlers filter output
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger('epub_parser').setLevel(logging.DEBUG)
+    logging.getLogger(__name__).setLevel(logging.DEBUG)
+except Exception:
+    pass
 
 # Demote console StreamHandler to WARNING so progress bar stays stable
 try:
@@ -439,7 +458,9 @@ class LibraryIndexer:
                     file_path = future_to_file[future]
                     
                     try:
+                        logger.debug(f"Future result start: {file_path}")
                         file_path, book_data = future.result()
+                        logger.debug(f"Future result done: {file_path}, has_data={bool(book_data)}")
                         
                         if book_data:
                             # If LLM was rate limited and produced no tags, skip saving (to retry later)
@@ -450,10 +471,13 @@ class LibraryIndexer:
                                 rate_limited = False
                             if rate_limited:
                                 self.stats.skipped_files += 1
+                                logger.debug(f"Skipped save due to rate limit: {file_path}")
                                 # Do not print per-file; keep progress stable
                                 continue
                             # Save to database
+                            logger.debug(f"DB save start: {file_path}")
                             success = self.database.add_book(book_data)
+                            logger.debug(f"DB save done: {file_path}, success={success}")
                             if success:
                                 self.stats.successful_files += 1
                             else:
@@ -464,6 +488,7 @@ class LibraryIndexer:
                     except Exception as e:
                         self.stats.failed_files += 1
                         console.print(f"[red]x[/red] {Path(file_path).name} (error: {str(e)})")
+                        logger.debug(f"Future exception for {file_path}: {e}")
                     
                     self.stats.processed_files += 1
                     # Update task line with running counters and last file basename
