@@ -161,15 +161,23 @@ def register_routes(app: Flask):
         if not book:
             return render_template('404.html'), 404
         
-        # Get recommendations
-        recommendation_service = RecommendationService()
-        recommendations = recommendation_service.get_recommendations(book_id, limit=6)
-
-        # External user rating (non-blocking best-effort)
+        # Get recommendations (reuse cached service to avoid reloading entire DB on each request)
+        import time as _time
         try:
-            external_rating = ExternalRatingsService.get_rating_for_book(book) if book else None
+            cache = getattr(current_app, 'recommendation_service_cache', None)
+            ttl_seconds = 10 * 60  # refresh every 10 minutes
+            now = _time.time()
+            if not cache or (now - cache.get('ts', 0)) > ttl_seconds:
+                svc = RecommendationService()
+                current_app.recommendation_service_cache = {'svc': svc, 'ts': now}
+            else:
+                svc = cache['svc']
         except Exception:
-            external_rating = None
+            svc = RecommendationService()
+        recommendations = svc.get_recommendations(book_id, limit=6)
+
+        # External user rating: now fetched asynchronously on the client to avoid blocking
+        external_rating = None
         
         return render_template('book_detail.html', 
                              book=book,
@@ -239,6 +247,52 @@ def register_routes(app: Flask):
                 'message': f'Error: {str(e)}',
                 'timestamp': datetime.now().isoformat()
             }), 500
+
+    @app.route('/api/ratings/coverage')
+    def api_ratings_coverage():
+        """Return naive ratings coverage stats over a small sample.
+
+        Query params: limit (default 200)
+        """
+        try:
+            limit = max(1, int(request.args.get('limit', 200)))
+        except Exception:
+            limit = 200
+        try:
+            stats = ExternalRatingsService.ratings_coverage_stats(sample_limit=limit)
+        except Exception as e:
+            return jsonify({ 'error': str(e) }), 500
+        return jsonify(stats)
+
+    @app.route('/api/ratings/test/<book_id>')
+    def api_ratings_test(book_id):
+        """Test external rating resolution for a specific book id."""
+        try:
+            book = BookService.get_book_by_id(book_id)
+            if not book:
+                return jsonify({ 'error': 'not found' }), 404
+            try:
+                rating = ExternalRatingsService.get_rating_for_book(book)
+            except Exception:
+                rating = None
+            return jsonify({ 'book_id': book_id, 'isbn': book.get('isbn'), 'title': book.get('title'), 'authors': book.get('authors'), 'rating': rating })
+        except Exception as e:
+            return jsonify({ 'error': str(e) }), 500
+
+    # Clean endpoint for client-side rating fetch
+    @app.route('/api/ratings/<book_id>')
+    def api_ratings(book_id):
+        try:
+            book = BookService.get_book_by_id(book_id)
+            if not book:
+                return jsonify({ 'error': 'not found' }), 404
+            try:
+                rating = ExternalRatingsService.get_rating_for_book(book)
+            except Exception:
+                rating = None
+            return jsonify({ 'rating': rating })
+        except Exception as e:
+            return jsonify({ 'error': str(e) }), 500
     
     @app.route('/cover/<book_id>')
     def book_cover(book_id):

@@ -29,6 +29,57 @@ body.light-mode .book-detail-cover {
 </style>
 {% endblock %}
 
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Apply shaded styles for secondary tags
+  document.querySelectorAll('.secondary-shaded').forEach(function(el){
+    var bg = el.getAttribute('data-bg');
+    var fg = el.getAttribute('data-fg');
+    if (bg) el.style.setProperty('background-color', bg, 'important');
+    if (fg) el.style.setProperty('color', fg, 'important');
+  });
+
+  // Fetch external user rating asynchronously to avoid blocking page load
+  var ratingSection = document.getElementById('rating_section');
+  if (ratingSection) {
+    var bookId = ratingSection.getAttribute('data-book-id');
+    var contentEl = document.getElementById('rating_content');
+    var tmpl = ratingSection.getAttribute('data-count-template') || 'based on %%COUNT%% ratings';
+    if (bookId && contentEl) {
+      fetch('/api/ratings/' + encodeURIComponent(bookId))
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          var r = data && data.rating;
+          if (!r || typeof r.average === 'undefined') {
+            ratingSection.style.display = 'none';
+            return;
+          }
+          var avg = (Number(r.average) || 0).toFixed(1);
+          var cnt = Number(r.count) || 0;
+          var source = (r.source || '').toString();
+          var url = (r.url || '').toString();
+          var countText = tmpl.replace('%%COUNT%%', String(cnt));
+          var parts = [
+            '<span class="fw-semibold">' + avg + '/5</span>',
+            '<small class="text-muted">' + countText + '</small>'
+          ];
+          if (url) {
+            parts.push('<a class="small" href="' + url + '" target="_blank" rel="noopener noreferrer">' + source + '</a>');
+          } else if (source) {
+            parts.push('<span class="small text-muted">' + source + '</span>');
+          }
+          contentEl.innerHTML = parts.join(' ');
+        })
+        .catch(function(){
+          ratingSection.style.display = 'none';
+        });
+    }
+  }
+});
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="row">
   <!-- Book Details -->
@@ -80,20 +131,13 @@ body.light-mode .book-detail-cover {
               </div>
             </div>
 
-            {% if external_rating %}
-            <div class="mb-3">
+            <div id="rating_section" class="mb-3" data-book-id="{{ book.id }}" data-count-template="{{ 'book_details.book_rating_count' | translate(current_language or 'en', count='%%COUNT%%') }}">
               <h6>{{ 'book_details.book_user_rating' | translate(current_language or 'en') }}</h6>
-              <div class="d-flex align-items-center gap-2">
-                <span class="fw-semibold">{{ '%.1f'|format(external_rating.average) }}/5</span>
-                <small class="text-muted">{{ 'book_details.book_rating_count' | translate(current_language or 'en', count=external_rating.count) }}</small>
-                {% if external_rating.url %}
-                <a class="small" href="{{ external_rating.url }}" target="_blank" rel="noopener noreferrer">{{ external_rating.source }}</a>
-                {% else %}
-                <span class="small text-muted">{{ external_rating.source }}</span>
-                {% endif %}
+              <div id="rating_content" class="d-flex align-items-center gap-2 text-muted small">
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                {{ 'common.loading' | translate(current_language or 'en') }}
               </div>
             </div>
-            {% endif %}
 
             {% if book.description %}
             <div class="mb-3">
@@ -110,10 +154,20 @@ body.light-mode .book-detail-cover {
               {% if primary_tag %}
               <span class="badge {{ primary_tag|primary_tag_color }} me-1">{{ primary_tag|tag_label(current_language or 'en') }}</span>
               {% endif %}
-              {% if secondary_tags %}
-              {% for t in secondary_tags[:3] %}
-              <span class="badge bg-secondary text-dark me-1">{{ t|tag_label(current_language or 'en') }}</span>
-              {% endfor %}
+              {# Prefer scored secondaries when available #}
+              {% set secondaries_scored = book.secondary_tags_scored %}
+              {% if secondaries_scored %}
+                {% for st in (secondaries_scored|selectattr('score','ge',0.55)|list)[:3] %}
+                  {% if st.score|secondary_tag_use_full(0.75) %}
+                  <span class="badge {{ st.tag|primary_tag_color }} me-1">{{ st.tag|tag_label(current_language or 'en') }}</span>
+                  {% else %}
+                  <span class="badge me-1 secondary-shaded" data-bg="{{ st.tag|secondary_tag_bg(st.score, 0.75) }}" data-fg="{{ st.tag|secondary_tag_fg(st.score, 0.75) }}">{{ st.tag|tag_label(current_language or 'en') }}</span>
+                  {% endif %}
+                {% endfor %}
+              {% elif secondary_tags %}
+                {% for t in secondary_tags[:3] %}
+                <span class="badge bg-secondary text-dark me-1">{{ t|tag_label(current_language or 'en') }}</span>
+                {% endfor %}
               {% endif %}
             </div>
             {% endif %}

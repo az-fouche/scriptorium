@@ -144,6 +144,122 @@ def register_template_filters(app):
             from tag_manager import get_tag_color_class
         cls = get_tag_color_class(tag_key)
         return 'bg-primary' if cls == 'bg-secondary' else cls
+
+    # Compute inline background color style for a secondary tag given its score.
+    # The color is mixed between the tag's base color and grey based on alpha derived from score.
+    # Above a threshold (default 0.5), we use full color.
+    @app.template_filter('secondary_tag_style')
+    def secondary_tag_style_filter(tag_key: str, score: float = 0.0, threshold: float = 0.75):
+        try:
+            from .tag_manager import get_tag_color_class
+        except ImportError:
+            from tag_manager import get_tag_color_class
+        try:
+            s = float(score or 0.0)
+        except Exception:
+            s = 0.0
+        # Clamp and derive alpha with a gentle curve; linear for now, can adjust later
+        alpha = max(0.0, min(1.0, s))
+        if alpha >= threshold:
+            # Use full color via class; no inline style needed
+            return ''
+        base_class = get_tag_color_class(tag_key) or 'bg-secondary'
+        # Map known classes to RGB
+        color_map = {
+            'bg-pink': (232, 62, 140),
+            'bg-purple': (111, 66, 193),
+            'bg-indigo': (102, 16, 242),
+            'bg-danger': (220, 53, 69),
+            'bg-warning': (255, 193, 7),
+            'bg-info': (13, 202, 240),
+            'bg-success': (25, 135, 84),
+            'bg-primary': (13, 110, 253),
+            'bg-dark': (33, 37, 41),
+            'bg-secondary': (108, 117, 125),
+        }
+        r, g, b = color_map.get(base_class, (108, 117, 125))
+        # Grey to blend with
+        gr, gg, gb = (108, 117, 125)
+        mix = lambda c, gc: int(round(alpha * c + (1.0 - alpha) * gc))
+        mr, mg, mb = mix(r, gr), mix(g, gg), mix(b, gb)
+        # Inline background-color + text color for contrast when blending towards grey
+        text_color = '#000000' if (0.299*mr + 0.587*mg + 0.114*mb) > 186 else '#ffffff'
+        return f"background-color: rgb({mr}, {mg}, {mb}) !important; color: {text_color} !important;"
+
+    @app.template_filter('secondary_tag_use_full')
+    def secondary_tag_use_full_filter(score: float = 0.0, threshold: float = 0.75):
+        try:
+            s = float(score or 0.0)
+        except Exception:
+            s = 0.0
+        return s >= threshold
+
+    @app.template_filter('secondary_tag_bg')
+    def secondary_tag_bg_filter(tag_key: str, score: float = 0.0, threshold: float = 0.75):
+        try:
+            from .tag_manager import get_tag_color_class
+        except ImportError:
+            from tag_manager import get_tag_color_class
+        try:
+            s = float(score or 0.0)
+        except Exception:
+            s = 0.0
+        if s >= threshold:
+            return ''
+        base_class = get_tag_color_class(tag_key) or 'bg-secondary'
+        color_map = {
+            'bg-pink': (232, 62, 140),
+            'bg-purple': (111, 66, 193),
+            'bg-indigo': (102, 16, 242),
+            'bg-danger': (220, 53, 69),
+            'bg-warning': (255, 193, 7),
+            'bg-info': (13, 202, 240),
+            'bg-success': (25, 135, 84),
+            'bg-primary': (13, 110, 253),
+            'bg-dark': (33, 37, 41),
+            'bg-secondary': (108, 117, 125),
+        }
+        r, g, b = color_map.get(base_class, (108, 117, 125))
+        gr, gg, gb = (108, 117, 125)
+        alpha = max(0.0, min(1.0, s))
+        mr = int(round(alpha * r + (1.0 - alpha) * gr))
+        mg = int(round(alpha * g + (1.0 - alpha) * gg))
+        mb = int(round(alpha * b + (1.0 - alpha) * gb))
+        return f"rgb({mr}, {mg}, {mb})"
+
+    @app.template_filter('secondary_tag_fg')
+    def secondary_tag_fg_filter(tag_key: str, score: float = 0.0, threshold: float = 0.75):
+        # Foreground color based on mixed background luminance
+        try:
+            from .tag_manager import get_tag_color_class
+        except ImportError:
+            from tag_manager import get_tag_color_class
+        try:
+            s = float(score or 0.0)
+        except Exception:
+            s = 0.0
+        if s >= threshold:
+            return ''
+        color_map = {
+            'bg-pink': (232, 62, 140),
+            'bg-purple': (111, 66, 193),
+            'bg-indigo': (102, 16, 242),
+            'bg-danger': (220, 53, 69),
+            'bg-warning': (255, 193, 7),
+            'bg-info': (13, 202, 240),
+            'bg-success': (25, 135, 84),
+            'bg-primary': (13, 110, 253),
+            'bg-dark': (33, 37, 41),
+            'bg-secondary': (108, 117, 125),
+        }
+        base_class = get_tag_color_class(tag_key) or 'bg-secondary'
+        r, g, b = color_map.get(base_class, (108, 117, 125))
+        gr, gg, gb = (108, 117, 125)
+        alpha = max(0.0, min(1.0, s))
+        mr = int(round(alpha * r + (1.0 - alpha) * gr))
+        mg = int(round(alpha * g + (1.0 - alpha) * gg))
+        mb = int(round(alpha * b + (1.0 - alpha) * gb))
+        return '#000000' if (0.299*mr + 0.587*mg + 0.114*mb) > 186 else '#ffffff'
     
     @app.template_filter('format_number')
     def format_number_filter(number, language='en'):

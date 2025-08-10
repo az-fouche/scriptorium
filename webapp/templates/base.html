@@ -71,17 +71,27 @@
             font-family: 'Literata', Georgia, serif;
             background-color: var(--dark-bg);
             background-image:
+                var(--bg-texture),
                 radial-gradient(1200px 600px at 100% 0%, rgba(208, 179, 127, 0.06), transparent 70%),
                 radial-gradient(1200px 600px at 0% 100%, rgba(75, 110, 168, 0.06), transparent 70%);
+            background-repeat: repeat, no-repeat, no-repeat;
+            background-size: var(--bg-texture-size), auto, auto;
+            background-attachment: fixed, fixed, fixed;
             color: var(--dark-text);
             transition: background-color 0.3s ease, color 0.3s ease, background-image 0.3s ease;
         }
 
         body.light-mode {
             background-color: var(--light-bg);
+            /* lighter noise in light mode */
+            --bg-texture: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 0.022"/></feComponentTransfer></filter><rect width="120" height="120" filter="url(%23noise)"/></svg>');
             background-image:
+                var(--bg-texture),
                 radial-gradient(1200px 600px at 100% 0%, rgba(193, 136, 75, 0.08), transparent 70%),
                 radial-gradient(1200px 600px at 0% 100%, rgba(42, 111, 151, 0.06), transparent 70%);
+            background-repeat: repeat, no-repeat, no-repeat;
+            background-size: var(--bg-texture-size), auto, auto;
+            background-attachment: fixed, fixed, fixed;
             color: var(--light-text);
         }
 

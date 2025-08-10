@@ -90,7 +90,16 @@
                                 {% if book.primary_tag %}
                                   <span class="badge {{ book.primary_tag|primary_tag_color }} me-1">{{ book.primary_tag|tag_label(current_language or 'en') }}</span>
                                 {% endif %}
-                                {% if book.secondary_tags %}
+                                {% set secondaries_scored = book.secondary_tags_scored %}
+                                {% if secondaries_scored %}
+                                  {% for st in (secondaries_scored|selectattr('score','ge',0.55)|list)[:3] %}
+                                    {% if st.score|secondary_tag_use_full(0.75) %}
+                                      <span class="badge {{ st.tag|primary_tag_color }} me-1">{{ st.tag|tag_label(current_language or 'en') }}</span>
+                                    {% else %}
+                                      <span class="badge me-1 secondary-shaded" data-bg="{{ st.tag|secondary_tag_bg(st.score, 0.75) }}" data-fg="{{ st.tag|secondary_tag_fg(st.score, 0.75) }}">{{ st.tag|tag_label(current_language or 'en') }}</span>
+                                    {% endif %}
+                                  {% endfor %}
+                                {% elif book.secondary_tags %}
                                   {% for t in book.secondary_tags[:3] %}
                                     <span class="badge bg-secondary text-dark me-1">{{ t|tag_label(current_language or 'en') }}</span>
                                   {% endfor %}
@@ -147,7 +156,16 @@
                             {% if book.primary_tag %}
                               <span class="badge {{ book.primary_tag|primary_tag_color }} me-1">{{ book.primary_tag|tag_label(current_language or 'en') }}</span>
                             {% endif %}
-                            {% if book.secondary_tags %}
+                            {% set secondaries_scored = book.secondary_tags_scored %}
+                            {% if secondaries_scored %}
+                              {% for st in (secondaries_scored|selectattr('score','ge',0.55)|list)[:3] %}
+                                {% if st.score|secondary_tag_use_full(0.75) %}
+                                  <span class="badge {{ st.tag|primary_tag_color }} me-1">{{ st.tag|tag_label(current_language or 'en') }}</span>
+                                {% else %}
+                                  <span class="badge me-1 secondary-shaded" data-bg="{{ st.tag|secondary_tag_bg(st.score, 0.75) }}" data-fg="{{ st.tag|secondary_tag_fg(st.score, 0.75) }}">{{ st.tag|tag_label(current_language or 'en') }}</span>
+                                {% endif %}
+                              {% endfor %}
+                            {% elif book.secondary_tags %}
                               {% for t in book.secondary_tags[:3] %}
                                 <span class="badge bg-secondary text-dark me-1">{{ t|tag_label(current_language or 'en') }}</span>
                               {% endfor %}
@@ -252,6 +270,14 @@
 
 {% block extra_js %}
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.secondary-shaded').forEach(function(el){
+    var bg = el.getAttribute('data-bg');
+    var fg = el.getAttribute('data-fg');
+    if (bg) el.style.setProperty('background-color', bg, 'important');
+    if (fg) el.style.setProperty('color', fg, 'important');
+  });
+});
 function changeView(view) {
     const gridView = document.getElementById('books-grid');
     const listView = document.getElementById('books-list');
@@ -435,11 +461,69 @@ document.addEventListener('DOMContentLoaded', function () {
             return colors[String(tag)] || 'bg-secondary';
         }
 
+        function blendColor(rgb, alpha, grey) {
+            const [r,g,b] = rgb; const [gr,gg,gb] = grey;
+            const mr = Math.round(alpha*r + (1-alpha)*gr);
+            const mg = Math.round(alpha*g + (1-alpha)*gg);
+            const mb = Math.round(alpha*b + (1-alpha)*gb);
+            const lum = 0.299*mr + 0.587*mg + 0.114*mb;
+            const text = lum > 186 ? '#000000' : '#ffffff';
+            return { bg: `rgb(${mr}, ${mg}, ${mb})`, text };
+        }
+
+        function classToRgb(cls) {
+            switch (cls) {
+                case 'bg-pink': return [232,62,140];
+                case 'bg-purple': return [111,66,193];
+                case 'bg-indigo': return [102,16,242];
+                case 'bg-danger': return [220,53,69];
+                case 'bg-warning': return [255,193,7];
+                case 'bg-info': return [13,202,240];
+                case 'bg-success': return [25,135,84];
+                case 'bg-primary': return [13,110,253];
+                case 'bg-dark': return [33,37,41];
+                case 'bg-secondary': return [108,117,125];
+                default: return [108,117,125];
+            }
+        }
+
         function bookTags(book) {
             const parts = [];
             if (book.primary_tag) parts.push(`<span class="badge ${genreColor(book.primary_tag)} me-1">${escapeHtml(tagLabel(book.primary_tag))}</span>`);
-            parseList(book.secondary_tags).slice(0,3).forEach(t => parts.push(`<span class="badge bg-secondary text-dark me-1">${escapeHtml(tagLabel(t))}</span>`));
+            const grey = [108,117,125];
+            const visibilityMin = 0.55; // only show secondaries >= 0.55
+            const fullColor = 0.75; // switch to full color at 0.75
+            // Prefer scored secondaries if available
+            const scored = Array.isArray(book.secondary_tags_scored) ? book.secondary_tags_scored : [];
+            if (scored.length) {
+                scored
+                  .filter(st => (Number(st?.score) || 0) >= visibilityMin)
+                  .slice(0,3)
+                  .forEach(st => {
+                    const tag = st.tag;
+                    const s = Math.max(0, Math.min(1, Number(st.score)||0));
+                    if (s >= fullColor) {
+                        parts.push(`<span class="badge ${genreColor(tag)} me-1">${escapeHtml(tagLabel(tag))}</span>`);
+                    } else {
+                        const baseCls = genreColor(tag);
+                        const rgb = classToRgb(baseCls);
+                        const { bg, text } = blendColor(rgb, s, grey);
+                        parts.push(`<span class="badge me-1" style="background-color:${bg} !important; color:${text} !important;">${escapeHtml(tagLabel(tag))}</span>`);
+                    }
+                });
+            } else {
+                parseList(book.secondary_tags).slice(0,3).forEach(t => parts.push(`<span class="badge bg-secondary text-dark me-1">${escapeHtml(tagLabel(t))}</span>`));
+            }
             return parts.join('');
+        }
+
+        // Consistent reading time formatting: 200 WPM -> minutes -> ceil to hours; language-aware
+        function formatReadingTimeFromWordCount(wordCount) {
+            const lang = "{{ (current_language or 'en') }}";
+            const wc = Number(wordCount) || 0;
+            const minutes = Math.max(1, Math.round(wc / 200));
+            const hours = Math.max(1, Math.ceil(minutes / 60));
+            return lang.startsWith('fr') ? `${hours} h` : `${hours}h`;
         }
 
         const books = Array.isArray(data.books) ? data.books : [];
@@ -459,7 +543,7 @@ document.addEventListener('DOMContentLoaded', function () {
                       <div class="book-tags mb-2">${bookTags(book)}</div>
                       <div class="explore-card-meta">
                         <small class="text-muted"><i class="fas fa-language me-1"></i>${escapeHtml(book.language || '')}</small>
-                        ${book.word_count ? `<small class="text-muted ms-3"><i class="fas fa-clock me-1"></i>${Math.max(1, Math.round((book.word_count || 0)/250))} min</small>` : ''}
+                        ${book.word_count ? `<small class="text-muted ms-3"><i class="fas fa-clock me-1"></i>${formatReadingTimeFromWordCount(book.word_count)}</small>` : ''}
                       </div>
                     </div>
                   </div>

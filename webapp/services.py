@@ -221,12 +221,19 @@ class BookService:
                     try:
                         b['primary_tag'] = str(topics[0]) if topics else ''
                         b['secondary_tags'] = [str(t) for t in topics[1:4]] if len(topics) > 1 else []
+                        # No confidence information available in topics fallback
+                        b['primary_tag_score'] = None
+                        b['secondary_tags_scored'] = []
                     except Exception:
                         b['primary_tag'] = ''
                         b['secondary_tags'] = []
+                        b['primary_tag_score'] = None
+                        b['secondary_tags_scored'] = []
                 else:
                     b['primary_tag'] = ''
                     b['secondary_tags'] = []
+                    b['primary_tag_score'] = None
+                    b['secondary_tags_scored'] = []
                 continue
             try:
                 sorted_scores = sorted(
@@ -236,12 +243,27 @@ class BookService:
                 )
                 non_zero = [d for d in sorted_scores if float(d.get('score', 0.0)) > 0]
                 primary = non_zero[0]['tag'] if non_zero else ''
-                secondaries = [d['tag'] for d in non_zero[1:4]] if non_zero else []
+                primary_score = float(non_zero[0].get('score', 0.0)) if non_zero else None
+                # Build secondaries with scores
+                secondaries_dicts = non_zero[1:4] if non_zero else []
+                secondaries = [d['tag'] for d in secondaries_dicts]
+                secondaries_scored = [
+                    {
+                        'tag': str(d.get('tag') or ''),
+                        'score': float(d.get('score', 0.0))
+                    }
+                    for d in secondaries_dicts
+                    if d.get('tag')
+                ]
                 b['primary_tag'] = primary
                 b['secondary_tags'] = secondaries
+                b['primary_tag_score'] = primary_score
+                b['secondary_tags_scored'] = secondaries_scored
             except Exception:
                 b['primary_tag'] = ''
                 b['secondary_tags'] = []
+                b['primary_tag_score'] = None
+                b['secondary_tags_scored'] = []
 
     @staticmethod
     def get_book_by_id(book_id: str) -> Optional[Dict]:
@@ -708,19 +730,107 @@ class ExternalRatingsService:
 
     @classmethod
     def get_rating_for_book(cls, book: Dict) -> Optional[Dict]:
-        """Get external rating info for a book dict (expects 'isbn')."""
-        isbn = (book or {}).get('isbn')
-        if not isbn:
+        """Get external rating info for a book.
+
+        Strategy (best-effort, fast timeouts):
+        1) Try Google Books by normalized ISBN if present
+        2) Try Open Library by ISBN
+        3) If still missing, try Google Books by title+author
+        4) Try Open Library by title+author
+
+        Return the result with the highest rating count when multiple are available.
+        """
+        if not book:
             return None
 
-        cache_key = f"google:isbn:{isbn}"
-        cached = cls._get_cached(cache_key)
-        if cached is not None:
-            return cached
+        isbn_raw = (book or {}).get('isbn') or ''
+        title = str((book or {}).get('title') or '').strip()
+        authors = (book or {}).get('authors') or []
+        language = str((book or {}).get('language') or '').strip().lower()
 
-        result = cls._fetch_google_books_rating_by_isbn(isbn)
-        cls._set_cached(cache_key, result)
-        return result
+        # Normalize ISBN to digits only (keep 10 or 13 length if possible)
+        def _normalize_isbn(value: str) -> str:
+            import re as _re
+            digits = ''.join(_re.findall(r'\d', str(value or '')))
+            # Prefer 13 if present, else 10, else raw digits
+            if len(digits) >= 13:
+                return digits[-13:]
+            if len(digits) == 10:
+                return digits
+            return digits
+
+        isbn = _normalize_isbn(isbn_raw)
+
+        # Attempt multiple sources, caching each attempt
+        candidates: List[Dict] = []
+
+        # Helper to fetch with cache wrapper
+        def _get_with_cache(cache_key: str, fetcher):
+            cached_val = cls._get_cached(cache_key)
+            if cached_val is not None:
+                return cached_val
+            result_val = None
+            try:
+                result_val = fetcher()
+            except Exception:
+                result_val = None
+            cls._set_cached(cache_key, result_val)
+            return result_val
+
+        # 1) Google by ISBN
+        if isbn:
+            res_g_isbn = _get_with_cache(f"google:isbn:{isbn}", lambda: cls._fetch_google_books_rating_by_isbn(isbn))
+            if res_g_isbn:
+                candidates.append(res_g_isbn)
+
+        # 2) Open Library by ISBN
+        if isbn:
+            res_ol_isbn = _get_with_cache(f"openlibrary:isbn:{isbn}", lambda: cls._fetch_openlibrary_rating_by_isbn(isbn))
+            if res_ol_isbn:
+                candidates.append(res_ol_isbn)
+
+        # Title/Author fallback only if we have at least a title
+        def _first_author(auths) -> str:
+            try:
+                if isinstance(auths, list) and auths:
+                    return str(auths[0])
+                if isinstance(auths, str):
+                    return auths
+            except Exception:
+                pass
+            return ''
+
+        first_author = _first_author(authors)
+        if title:
+            # 3) Google by title+author
+            key = f"google:ta:{title.lower()}::{first_author.lower()}::{language}"
+            res_g_ta = _get_with_cache(key, lambda: cls._fetch_google_books_rating_by_title_author(title, first_author, language))
+            if res_g_ta:
+                candidates.append(res_g_ta)
+
+            # 4) Open Library by title+author
+            key2 = f"openlibrary:ta:{title.lower()}::{first_author.lower()}"
+            res_ol_ta = _get_with_cache(key2, lambda: cls._fetch_openlibrary_rating_by_title_author(title, first_author))
+            if res_ol_ta:
+                candidates.append(res_ol_ta)
+
+        if not candidates:
+            return None
+
+        # Prefer the result with the largest number of ratings; tie-break on higher average
+        def _safe_count(d: Dict) -> int:
+            try:
+                return int(d.get('count') or 0)
+            except Exception:
+                return 0
+        def _safe_avg(d: Dict) -> float:
+            try:
+                return float(d.get('average') or 0.0)
+            except Exception:
+                return 0.0
+
+        candidates.sort(key=lambda d: (_safe_count(d), _safe_avg(d)), reverse=True)
+        return candidates[0]
 
     @staticmethod
     def _fetch_google_books_rating_by_isbn(isbn: str) -> Optional[Dict]:
@@ -770,3 +880,215 @@ class ExternalRatingsService:
             }
         except Exception:
             return None
+
+    @staticmethod
+    def _fetch_google_books_rating_by_title_author(title: str, author: str, language: str = '') -> Optional[Dict]:
+        """Fetch Google Books ratings using title and author as a fallback.
+
+        Chooses the best-matching volume by simple similarity on title/author.
+        """
+        try:
+            import json
+            from urllib.parse import quote
+            from urllib.request import urlopen, Request
+            from difflib import SequenceMatcher
+
+            def _norm(s: str) -> str:
+                s = (s or '').strip().lower()
+                return ' '.join(''.join(ch for ch in s if ch.isalnum() or ch.isspace()).split())
+
+            q_parts = []
+            if title:
+                q_parts.append(f"intitle:{title}")
+            if author:
+                q_parts.append(f"inauthor:{author}")
+            q = '+'.join(q_parts) if q_parts else quote(title)
+            base = f"https://www.googleapis.com/books/v1/volumes?q={quote(q)}"
+            # Restrict by language if a 2-letter code is provided
+            if language and len(language) in (2, 3):
+                base += f"&langRestrict={quote(language)}"
+            req = Request(base, headers={'User-Agent': 'Scriptorium/1.0 (+https://example.local)'})
+            with urlopen(req, timeout=3) as resp:
+                if resp.status != 200:
+                    return None
+                data = json.loads(resp.read().decode('utf-8', errors='ignore'))
+
+            items = (data or {}).get('items') or []
+            if not items:
+                return None
+
+            target_title = _norm(title)
+            target_author = _norm(author)
+
+            best = None
+            best_score = -1.0
+            for it in items:
+                info = (it or {}).get('volumeInfo') or {}
+                g_title = _norm(info.get('title') or '')
+                g_auths = info.get('authors') or []
+                g_first_author = _norm(g_auths[0] if g_auths else '')
+                # Similarity on title and author
+                title_sim = SequenceMatcher(a=target_title, b=g_title).ratio() if target_title and g_title else 0.0
+                author_sim = SequenceMatcher(a=target_author, b=g_first_author).ratio() if target_author and g_first_author else 0.0
+                sim = 0.7 * title_sim + 0.3 * author_sim
+                # Prefer entries that actually have ratings
+                if info.get('averageRating') is None or info.get('ratingsCount') is None:
+                    continue
+                if sim > best_score:
+                    best = info
+                    best_score = sim
+
+            if not best:
+                return None
+            try:
+                avg_float = float(best.get('averageRating'))
+            except Exception:
+                return None
+            try:
+                cnt_int = int(best.get('ratingsCount'))
+            except Exception:
+                cnt_int = 0
+            link = best.get('canonicalVolumeLink') or best.get('infoLink') or ''
+            return {
+                'average': avg_float,
+                'count': cnt_int,
+                'source': 'Google Books',
+                'url': link,
+            }
+        except Exception:
+            return None
+
+    @staticmethod
+    def _fetch_openlibrary_rating_by_isbn(isbn: str) -> Optional[Dict]:
+        """Fetch ratings from Open Library using ISBN via edition -> work -> ratings.
+
+        Returns None if not found or on error.
+        """
+        try:
+            import json
+            from urllib.parse import quote
+            from urllib.request import urlopen, Request
+
+            # 1) Resolve edition to work key
+            url = f"https://openlibrary.org/isbn/{quote(isbn)}.json"
+            req = Request(url, headers={'User-Agent': 'Scriptorium/1.0 (+https://example.local)'})
+            with urlopen(req, timeout=3) as resp:
+                if resp.status != 200:
+                    return None
+                edition = json.loads(resp.read().decode('utf-8', errors='ignore'))
+            works = (edition or {}).get('works') or []
+            if not works:
+                return None
+            work_key = (works[0] or {}).get('key')
+            if not work_key:
+                return None
+
+            # 2) Fetch ratings for work
+            rurl = f"https://openlibrary.org{work_key}/ratings.json"
+            rreq = Request(rurl, headers={'User-Agent': 'Scriptorium/1.0 (+https://example.local)'})
+            with urlopen(rreq, timeout=3) as rresp:
+                if rresp.status != 200:
+                    return None
+                ratings = json.loads(rresp.read().decode('utf-8', errors='ignore'))
+            summary = (ratings or {}).get('summary') or {}
+            counts = (ratings or {}).get('counts') or {}
+            avg = summary.get('average')
+            total = counts.get('total')
+            if avg is None or total is None:
+                return None
+            return {
+                'average': float(avg),
+                'count': int(total),
+                'source': 'Open Library',
+                'url': f"https://openlibrary.org{work_key}",
+            }
+        except Exception:
+            return None
+
+    @staticmethod
+    def _fetch_openlibrary_rating_by_title_author(title: str, author: str) -> Optional[Dict]:
+        """Fetch ratings from Open Library by searching title/author -> work -> ratings."""
+        try:
+            import json
+            from urllib.parse import quote
+            from urllib.request import urlopen, Request
+
+            # 1) Search for the work
+            q = f"https://openlibrary.org/search.json?title={quote(title)}"
+            if author:
+                q += f"&author={quote(author)}"
+            q += "&limit=5"
+            req = Request(q, headers={'User-Agent': 'Scriptorium/1.0 (+https://example.local)'})
+            with urlopen(req, timeout=3) as resp:
+                if resp.status != 200:
+                    return None
+                data = json.loads(resp.read().decode('utf-8', errors='ignore'))
+            docs = (data or {}).get('docs') or []
+            if not docs:
+                return None
+            # Pick the top result that has a work key
+            work_key = None
+            for d in docs:
+                key = d.get('key') or ''
+                if key.startswith('/works/'):
+                    work_key = key
+                    break
+            if not work_key:
+                return None
+
+            # 2) Fetch ratings for work
+            rurl = f"https://openlibrary.org{work_key}/ratings.json"
+            rreq = Request(rurl, headers={'User-Agent': 'Scriptorium/1.0 (+https://example.local)'})
+            with urlopen(rreq, timeout=3) as rresp:
+                if rresp.status != 200:
+                    return None
+                ratings = json.loads(rresp.read().decode('utf-8', errors='ignore'))
+            summary = (ratings or {}).get('summary') or {}
+            counts = (ratings or {}).get('counts') or {}
+            avg = summary.get('average')
+            total = counts.get('total')
+            if avg is None or total is None:
+                return None
+            return {
+                'average': float(avg),
+                'count': int(total),
+                'source': 'Open Library',
+                'url': f"https://openlibrary.org{work_key}",
+            }
+        except Exception:
+            return None
+
+    @classmethod
+    def ratings_coverage_stats(cls, sample_limit: int = 500) -> Dict[str, int]:
+        """Compute naive coverage stats across a sample of books.
+
+        Returns a dict: { total: N, with_isbn: A, found: B }
+        Warning: This can trigger network calls; keep sample_limit modest.
+        """
+        try:
+            # Lazy import to avoid circular deps
+            try:
+                from .models import Book  # type: ignore
+            except Exception:
+                from models import Book  # type: ignore
+
+            total = 0
+            with_isbn = 0
+            found = 0
+            # Query a deterministic sample (by title ordering) to avoid hammering APIs
+            rows = Book.query.order_by(Book.title).limit(max(1, int(sample_limit))).all()
+            for row in rows:
+                total += 1
+                item = row.to_dict()
+                if item.get('isbn'):
+                    with_isbn += 1
+                res = None
+                try:
+                    res = cls.get_rating_for_book(item)
+                except Exception:
+                    res = None
+                if res:
+                    found += 1
+            return { 'total': total, 'with_isbn': with_isbn, 'found': found }
+        except Exception:
+            return { 'total': 0, 'with_isbn': 0, 'found': 0 }

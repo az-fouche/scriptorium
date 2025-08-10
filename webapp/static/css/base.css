@@ -28,23 +28,37 @@
     --light-shadow: rgba(0, 0, 0, 0.1);
     --glass-light: rgba(255, 255, 255, 0.6);
     --card-light-alpha: rgba(255, 255, 255, 0.7);
+
+    /* Subtle paper-grain texture (used in both themes via --bg-texture) */
+    --bg-texture: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 0.032"/></feComponentTransfer></filter><rect width="120" height="120" filter="url(%23noise)"/></svg>');
+    --bg-texture-size: 280px 280px;
 }
 
 body {
     font-family: 'Literata', Georgia, serif;
     background-color: var(--dark-bg);
     background-image:
+        var(--bg-texture),
         radial-gradient(1200px 600px at 100% 0%, rgba(208, 179, 127, 0.06), transparent 70%),
         radial-gradient(1200px 600px at 0% 100%, rgba(75, 110, 168, 0.06), transparent 70%);
+    background-repeat: repeat, no-repeat, no-repeat;
+    background-size: var(--bg-texture-size), auto, auto;
+    background-attachment: fixed, fixed, fixed;
     color: var(--dark-text);
     transition: background-color 0.3s ease, color 0.3s ease, background-image 0.3s ease;
 }
 
 body.light-mode {
     background-color: var(--light-bg);
+    /* slightly gentler noise for light mode */
+    --bg-texture: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 0.022"/></feComponentTransfer></filter><rect width="120" height="120" filter="url(%23noise)"/></svg>');
     background-image:
+        var(--bg-texture),
         radial-gradient(1200px 600px at 100% 0%, rgba(193, 136, 75, 0.08), transparent 70%),
         radial-gradient(1200px 600px at 0% 100%, rgba(42, 111, 151, 0.06), transparent 70%);
+    background-repeat: repeat, no-repeat, no-repeat;
+    background-size: var(--bg-texture-size), auto, auto;
+    background-attachment: fixed, fixed, fixed;
     color: var(--light-text);
 }
 
@@ -339,11 +353,17 @@ body.light-mode .progress-bar {
     background-color: var(--dark-primary) !important;
     color: var(--dark-text);
     transition: background-color 0.3s ease, color 0.3s ease;
+    opacity: 0.85;
 }
 
 body.light-mode .badge {
     background-color: var(--light-primary) !important;
     color: var(--light-text);
+}
+
+/* Slight alpha on all badges with full opacity on hover for readability */
+.badge:hover {
+    opacity: 1;
 }
 
 /* Genre-specific badge colors */
@@ -357,6 +377,18 @@ body.light-mode .badge {
 .badge.bg-primary { background-color: #0d6efd !important; color: white !important; }
 .badge.bg-secondary { background-color: #6c757d !important; color: white !important; }
 .badge.bg-dark { background-color: #212529 !important; color: white !important; }
+
+/* Ensure badge colors also apply in light mode */
+body.light-mode .badge.bg-pink { background-color: #e83e8c !important; color: white !important; }
+body.light-mode .badge.bg-purple { background-color: #6f42c1 !important; color: white !important; }
+body.light-mode .badge.bg-indigo { background-color: #6610f2 !important; color: white !important; }
+body.light-mode .badge.bg-danger { background-color: #dc3545 !important; color: white !important; }
+body.light-mode .badge.bg-warning { background-color: #ffc107 !important; color: #212529 !important; }
+body.light-mode .badge.bg-info { background-color: #0dcaf0 !important; color: #000 !important; }
+body.light-mode .badge.bg-success { background-color: #198754 !important; color: white !important; }
+body.light-mode .badge.bg-primary { background-color: #0d6efd !important; color: white !important; }
+body.light-mode .badge.bg-secondary { background-color: #6c757d !important; color: white !important; }
+body.light-mode .badge.bg-dark { background-color: #212529 !important; color: white !important; }
 
 .text-muted {
     color: var(--dark-text-muted) !important;
