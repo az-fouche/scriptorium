@@ -38,13 +38,18 @@ def create_app(config_name='default'):
     try:
         static_dir = os.path.join(app.root_path, 'static')
         os.makedirs(static_dir, exist_ok=True)
-        static_icon = os.path.join(static_dir, 'icon.png')
-        # Prefer existing static icon; otherwise copy from project img/
-        if not os.path.exists(static_icon):
-            project_img_dir = os.path.normpath(os.path.join(app.root_path, '..', 'img'))
-            source_icon = os.path.join(project_img_dir, 'icon.png')
-            if os.path.exists(source_icon):
-                shutil.copyfile(source_icon, static_icon)
+        # Copy ICO if present to static for predictable serving by web servers/CSPs
+        static_favicon_ico = os.path.join(static_dir, 'favicon.ico')
+        project_img_dir = os.path.normpath(os.path.join(app.root_path, '..', 'img'))
+        source_favicon_ico = os.path.join(project_img_dir, 'favicon.ico')
+        if not os.path.exists(static_favicon_ico) and os.path.exists(source_favicon_ico):
+            shutil.copyfile(source_favicon_ico, static_favicon_ico)
+
+        # Also ensure legacy PNG remains available as a fallback
+        static_icon_png = os.path.join(static_dir, 'icon.png')
+        source_icon_png = os.path.join(project_img_dir, 'icon.png')
+        if not os.path.exists(static_icon_png) and os.path.exists(source_icon_png):
+            shutil.copyfile(source_icon_png, static_icon_png)
     except Exception:
         # Non-fatal if copying fails
         pass
@@ -252,6 +257,13 @@ def register_context_processors(app):
             ctx['tag_colors'] = colors
         except Exception:
             pass
+        # Add favicon version for cache-busting
+        try:
+            static_dir = os.path.join(app.root_path, 'static')
+            favicon_path = os.path.join(static_dir, 'favicon.ico')
+            ctx['favicon_version'] = str(int(os.path.getmtime(favicon_path))) if os.path.exists(favicon_path) else '1'
+        except Exception:
+            ctx['favicon_version'] = '1'
         return ctx
 
 # Create the application instance

@@ -508,15 +508,21 @@ def register_routes(app: Flask):
         """Serve favicon for browsers requesting /favicon.ico"""
         from flask import send_from_directory
         static_dir = os.path.join(app.root_path, 'static')
-        # Prefer a dedicated favicon.ico if present; otherwise use PNGs
+        # Prefer the project-level ICO specifically requested, then fall back to static assets
+        project_img_dir = os.path.normpath(os.path.join(app.root_path, '..', 'img'))
+        ico_project_path = os.path.join(project_img_dir, 'favicon.ico')
+        if os.path.exists(ico_project_path):
+            return send_from_directory(project_img_dir, 'favicon.ico', cache_timeout=31536000)
+
+        # Otherwise prefer a dedicated favicon.ico in static; then PNGs
         ico_path = os.path.join(static_dir, 'favicon.ico')
         png_static_path = os.path.join(static_dir, 'icon.png')
         if os.path.exists(ico_path):
             return send_from_directory(static_dir, 'favicon.ico', cache_timeout=31536000)
         if os.path.exists(png_static_path):
             return send_from_directory(static_dir, 'icon.png', cache_timeout=31536000)
-        # Fallback to project-level img/icon.png
-        project_img_dir = os.path.normpath(os.path.join(app.root_path, '..', 'img'))
+
+        # Fallback to project-level PNG if ICO not available
         png_project_path = os.path.join(project_img_dir, 'icon.png')
         if os.path.exists(png_project_path):
             return send_from_directory(project_img_dir, 'icon.png', cache_timeout=31536000)
